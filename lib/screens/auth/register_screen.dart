@@ -19,7 +19,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _sectionCtrl = TextEditingController();
 
   String _selectedRole = 'mayor';
-  String _selectedDept = Departments.all.first;
+  String _selectedDept = Departments.allFullNames.first;
   bool _loading = false;
   bool _obscure = true;
   String? _error;
@@ -161,7 +161,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     labelText: 'Department',
                     prefixIcon: Icon(Icons.business_outlined),
                   ),
-                  items: Departments.all
+                  items: Departments.allFullNames
                       .map((d) => DropdownMenuItem(value: d, child: Text(d)))
                       .toList(),
                   onChanged: (v) => setState(() => _selectedDept = v!),

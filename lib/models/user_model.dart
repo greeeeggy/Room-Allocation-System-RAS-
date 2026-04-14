@@ -24,6 +24,8 @@ class UserModel {
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final String rawDept = data['department'] ?? '';
+    
     return UserModel(
       userId: data['userId'] ?? doc.id,
       name: data['name'] ?? '',
@@ -31,12 +33,13 @@ class UserModel {
       role: data['role'] == 'council_president'
           ? UserRole.councilPresident
           : UserRole.mayor,
-      department: data['department'] ?? '',
+      department: Departments.getAbbreviation(rawDept),
       courseSection: data['courseSection'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       photoURL: data['photoURL'],
     );
   }
+
 
   Map<String, dynamic> toFirestore() => {
     'userId': userId,

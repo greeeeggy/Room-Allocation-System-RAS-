@@ -33,7 +33,15 @@ class _CouncilDirectoryScreenState
 
   static const _deptFilters = [
     'All',
-    ...Departments.all,
+    ...[
+      'BSIE',
+      'BSASE',
+      'BSEE',
+      'BSECE',
+      'BSME',
+      'BSCpE',
+      'BSCE',
+    ],
   ];
 
   @override
@@ -92,8 +100,9 @@ class _CouncilDirectoryScreenState
                 // Sort departments
                 final sortedKeys = grouped.keys.toList()
                   ..sort((a, b) {
-                    final ai = Departments.all.indexOf(a);
-                    final bi = Departments.all.indexOf(b);
+                    final abbs = Departments.allAbbreviations;
+                    final ai = abbs.indexOf(a);
+                    final bi = abbs.indexOf(b);
                     return (ai == -1 ? 999 : ai)
                         .compareTo(bi == -1 ? 999 : bi);
                   });
