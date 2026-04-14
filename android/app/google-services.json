@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1077283760082",
+    "project_id": "room-availability-app-8371b",
+    "storage_bucket": "room-availability-app-8371b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1077283760082:android:6958b363d1d5c7ffb60a0b",
+        "android_client_info": {
+          "package_name": "com.yourname.room_availability_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1077283760082-3ocfhsdt95iom4jo814jgmvv99uu7die.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTbEctB3QeA57j5zXolLb5x_5l1gjVuXQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1077283760082-3ocfhsdt95iom4jo814jgmvv99uu7die.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

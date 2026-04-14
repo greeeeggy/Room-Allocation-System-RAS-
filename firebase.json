@@ -1,0 +1,29 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "room-availability-app-8371b",
+          "appId": "1:1077283760082:android:6958b363d1d5c7ffb60a0b",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "room-availability-app-8371b",
+          "configurations": {
+            "android": "1:1077283760082:android:6958b363d1d5c7ffb60a0b",
+            "ios": "1:1077283760082:ios:1b96cc218dc2fd4eb60a0b",
+            "macos": "1:1077283760082:ios:1b96cc218dc2fd4eb60a0b",
+            "web": "1:1077283760082:web:f32cf58a4773d243b60a0b",
+            "windows": "1:1077283760082:web:08d357740b54a8dab60a0b"
+          }
+        }
+      }
+    }
+  }
+}

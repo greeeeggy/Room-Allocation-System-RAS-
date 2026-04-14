@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users can read their own profile; anyone logged in can read (for directory)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rooms: anyone logged in can read; mayors can update status and seed
+    match /rooms/{roomId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'mayor';
+    }
+
+    // Schedule blocks: mayors own their blocks
+    // hasConflict updates are allowed for any authenticated user (conflict
+    // flagging can affect the OTHER mayor's block, not just the actor's own).
+    match /scheduleBlocks/{blockId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.mayorId == request.auth.uid;
+      allow update: if request.auth != null
+        && (resource.data.mayorId == request.auth.uid
+            || (request.resource.data.keys().hasOnly(['hasConflict'])));
+      allow delete: if request.auth != null
+        && resource.data.mayorId == request.auth.uid;
+    }
+
+    // Notifications: any authenticated user can create (conflict detection
+    // writes notifications for other users' accounts).
+    // Recipients can read and update (mark read).
+    match /notifications/{notifId} {
+      allow read, update: if request.auth != null
+        && resource.data.recipientId == request.auth.uid;
+      allow create: if request.auth != null;
+    }
+
+  }
+}
