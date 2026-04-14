@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/mayor_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -44,6 +45,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     setState(() { _loading = true; _error = null; });
 
     try {
+      if (_selectedRole == 'mayor') {
+        await ref.read(mayorServiceProvider).validateMayorRegistration(
+          name: _nameCtrl.text.trim(),
+          department: _selectedDept,
+          courseSection: _sectionCtrl.text.trim(),
+        );
+      }
+
       await ref.read(authServiceProvider).register(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
@@ -67,6 +76,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (raw.contains('email-already-in-use')) return 'An account with this email already exists.';
     if (raw.contains('weak-password')) return 'Password must be at least 6 characters.';
     if (raw.contains('invalid-email')) return 'Invalid email format.';
+    
+    // If it's a custom exception from our validation, show the message directly
+    if (raw.startsWith('Exception: ')) {
+      return raw.replaceFirst('Exception: ', '');
+    }
+    
     return 'Registration failed. Please try again.';
   }
 

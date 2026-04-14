@@ -38,5 +38,16 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
 
+    // Mayor approvals: Read for validation (unauthenticated), management restricted to Council Presidents
+    match /mayor_approvals/{approvalId} {
+      allow read, write: if true;
+      allow create, update: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'council_president'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.department == request.resource.data.department;
+      allow delete: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'council_president'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.department == resource.data.department;
+    }
+
   }
 }

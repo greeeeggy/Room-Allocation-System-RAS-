@@ -11,11 +11,11 @@ import '../screens/schedule/edit_block_screen.dart';
 import '../screens/checkin/checkin_screen.dart';
 import '../screens/rooms/room_detail_screen.dart';
 import '../screens/rooms/room_search_screen.dart';
-import '../screens/floor_map/floor_map_screen.dart';
 import '../screens/notifications/notification_screen.dart';
 import '../screens/directory/council_directory_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/mayors/mayor_management_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -80,7 +80,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/schedule',
-                builder: (_, __) => const ScheduleScreen(),
+                builder: (context, state) {
+                  final user = ref.watch(authStateProvider).valueOrNull;
+                  if (user?.isCouncilPresident == true) {
+                    return const MayorManagementScreen();
+                  }
+                  return const ScheduleScreen();
+                },
                 routes: [
                   GoRoute(
                     path: 'add',
@@ -101,22 +107,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // ── Branch 2 — Floor Map ────────────────────────────────
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/map',
-                builder: (_, __) => const FloorMapScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'room/:roomId',
-                    builder: (_, state) => RoomDetailScreen(
-                        roomId: state.pathParameters['roomId']!),
-                  ),
-                ],
-              ),
-            ],
-          ),
 
           // ── Branch 3 — Room Search ──────────────────────────────
           StatefulShellBranch(

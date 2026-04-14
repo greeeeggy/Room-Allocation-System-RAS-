@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../core/constants.dart';
 import '../models/user_model.dart';
 
 class AuthService {
@@ -26,6 +27,15 @@ class AuthService {
               .map((snap) => snap.exists ? UserModel.fromFirestore(snap) : null);
 
           await for (final userModel in stream) {
+            // Self-healing: Automatically normalize department if it's a legacy/full name
+            if (userModel != null) {
+              final normalized = Departments.getAbbreviation(userModel.department);
+              if (normalized != userModel.department) {
+                print('[AuthService] Normalizing user profile department: '
+                    '${userModel.department} -> $normalized');
+                _db.collection('users').doc(user.uid).update({'department': normalized});
+              }
+            }
             yield userModel;
           }
         } catch (e) {
@@ -55,12 +65,14 @@ class AuthService {
       email: email,
       password: password,
     );
+    final normalizedDept = Departments.getAbbreviation(department);
+
     await _db.collection('users').doc(cred.user!.uid).set({
       'userId': cred.user!.uid,
       'name': name,
       'email': email,
       'role': role,
-      'department': department,
+      'department': normalizedDept,
       'courseSection': courseSection,
       'createdAt': FieldValue.serverTimestamp(),
       'photoURL': cred.user!.photoURL,

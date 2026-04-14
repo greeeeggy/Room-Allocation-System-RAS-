@@ -84,7 +84,8 @@ class _CouncilDirectoryScreenState
                 final filtered = _selectedDept == 'All'
                     ? users
                     : users
-                        .where((u) => u.department == _selectedDept)
+                        .where((u) => Departments.getAbbreviation(u.department) == 
+                                     Departments.getAbbreviation(_selectedDept))
                         .toList();
 
                 if (filtered.isEmpty) {
@@ -154,7 +155,7 @@ class _DepartmentSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(top: 12, bottom: 6),
           child: Text(
-            dept,
+            Departments.getAbbreviation(dept),
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
@@ -193,7 +194,7 @@ class _UserTile extends StatelessWidget {
         .toUpperCase();
 
     final String position = user.isCouncilPresident
-        ? 'Council President ($initials)'
+        ? 'Council President'
         : 'Mayor - ${user.courseSection ?? "No Section"}';
 
     return ListTile(

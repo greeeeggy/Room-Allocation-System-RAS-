@@ -37,15 +37,14 @@ class MainShell extends ConsumerWidget {
             selectedIcon: Icon(Icons.dashboard),
             label: 'Dashboard',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.calendar_today_outlined),
-            selectedIcon: Icon(Icons.calendar_today),
-            label: 'Schedule',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map),
-            label: 'Map',
+          NavigationDestination(
+            icon: Icon(user?.isCouncilPresident == true
+                ? Icons.people_outline
+                : Icons.calendar_today_outlined),
+            selectedIcon: Icon(user?.isCouncilPresident == true
+                ? Icons.people
+                : Icons.calendar_today),
+            label: user?.isCouncilPresident == true ? 'Mayors' : 'Schedule',
           ),
           const NavigationDestination(
             icon: Icon(Icons.search_outlined),
