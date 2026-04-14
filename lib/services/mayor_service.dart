@@ -27,17 +27,21 @@ class MayorService {
     final normalizedDept = Departments.getAbbreviation(department.trim());
     final id = '${normalizedDept}_$courseSection';
 
-    // DIAGNOSTIC LOGGING
-    try {
-      final userDoc = await _db.collection('users').doc(councilPresidentId).get();
-      if (userDoc.exists) {
-        final data = userDoc.data()!;
-        debugPrint('[MayorService] DIAGNOSTIC: userId=$councilPresidentId, role=${data['role']}, department=${data['department']}');
-      } else {
-        debugPrint('[MayorService] DIAGNOSTIC: User document NOT FOUND for UID=$councilPresidentId');
+    // Verify the Council President's own department matches
+    final presidentDoc = await _db.collection('users').doc(councilPresidentId).get();
+    if (presidentDoc.exists) {
+      final rawDept = presidentDoc.data()?['department'] ?? '';
+      final presidentDept = Departments.getAbbreviation(rawDept);
+      
+      // 1. Check if they are managing their own department
+      if (presidentDept != normalizedDept) {
+        throw Exception('You cant authorize mayors not from your department (Your department: $rawDept)');
       }
-    } catch (e) {
-      debugPrint('[MayorService] DIAGNOSTIC: Error fetching user doc: $e');
+
+      // 2. Check if the course section string matches their department (e.g., "BSIE 2-E" starts with "BSIE")
+      if (!courseSection.toUpperCase().startsWith(presidentDept.toUpperCase())) {
+        throw Exception('Section "$courseSection" does not belong to your department ($presidentDept)');
+      }
     }
 
     // Check if there is already an authorized mayor for this section
