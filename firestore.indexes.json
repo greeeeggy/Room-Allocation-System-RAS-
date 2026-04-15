@@ -59,6 +59,14 @@
         { "fieldPath": "type", "order": "ASCENDING" },
         { "fieldPath": "roomId", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "room_usage_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "roomId", "order": "ASCENDING" },
+        { "fieldPath": "checkedInAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

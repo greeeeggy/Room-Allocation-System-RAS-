@@ -188,7 +188,7 @@ class _MyNextClassCardState extends ConsumerState<_MyNextClassCard> {
     return GestureDetector(
       onTap: canCheckIn
           ? () => context.push('/dashboard/checkin/${block.blockId}')
-          : () => context.push('/dashboard/room/${block.roomId}'),
+          : (block.roomId == 'unassigned' ? null : () => context.push('/dashboard/room/${block.roomId}')),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -209,7 +209,7 @@ class _MyNextClassCardState extends ConsumerState<_MyNextClassCard> {
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                           fontSize: 14)),
-                  Text('${block.roomId} · $timeLabel',
+                  Text(block.roomId == 'unassigned' ? 'No assigned room · $timeLabel' : '${block.roomId} · $timeLabel',
                       style: const TextStyle(
                           color: Colors.white70, fontSize: 12)),
                 ],

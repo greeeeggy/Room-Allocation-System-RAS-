@@ -33,6 +33,7 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
           blockId: block.blockId,
           roomId: block.roomId,
           mayorId: user?.userId ?? '',
+          mayorName: user?.name ?? '',
           mayorSection: user?.courseSection ?? block.courseSection,
           mayorDepartment: user?.department ?? '',
         );

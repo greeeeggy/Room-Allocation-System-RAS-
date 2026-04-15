@@ -38,6 +38,15 @@ class RoomService {
     return doc.exists ? RoomModel.fromFirestore(doc) : null;
   }
 
+  /// Mark a room as occupied (used by the "Use This Room" borrow flow).
+  /// Sets status to 'occupied' without linking to a schedule block.
+  Future<void> setRoomOccupied(String roomId) async {
+    await _db.collection('rooms').doc(roomId).update({
+      'status': 'occupied',
+      'currentOccupantBlockId': null,
+    });
+  }
+
   // Seed rooms into Firestore (run once during setup)
   Future<void> seedRooms() async {
     final batch = _db.batch();

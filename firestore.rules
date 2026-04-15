@@ -49,5 +49,10 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.department == resource.data.department;
     }
 
+    match /room_usage_logs/{logId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+    }
+
   }
 }

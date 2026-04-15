@@ -199,12 +199,16 @@ class _AddBlockScreenState extends ConsumerState<AddBlockScreen> {
                   prefixIcon: Icon(Icons.meeting_room_outlined),
                   labelText: 'Select Room',
                 ),
-                items: rooms
-                    .map((r) => DropdownMenuItem(
-                          value: r.roomId,
-                          child: Text('${r.roomNumber} (Floor ${r.floor})'),
-                        ))
-                    .toList(),
+                items: [
+                  const DropdownMenuItem(
+                    value: 'unassigned',
+                    child: Text('No assigned room'),
+                  ),
+                  ...rooms.map((r) => DropdownMenuItem(
+                        value: r.roomId,
+                        child: Text('${r.roomNumber} (Floor ${r.floor})'),
+                      ))
+                ],
                 onChanged: (v) => setState(() => _selectedRoomId = v),
                 validator: (v) => v == null ? 'Please select a room' : null,
               ),

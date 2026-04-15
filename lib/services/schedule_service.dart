@@ -3,11 +3,14 @@ import 'dart:async';
 
 import '../models/schedule_block_model.dart';
 import '../core/constants.dart';
+import '../core/utils/time_utils.dart';
 import 'notification_service.dart';
+import 'room_usage_log_service.dart';
 
 class ScheduleService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final NotificationService _notifService = NotificationService();
+  final RoomUsageLogService _logService = RoomUsageLogService();
 
   /// Live stream of all active blocks for a mayor this semester, sorted by day → startTime.
   Stream<List<ScheduleBlockModel>> getMyBlocksStream(String mayorId) {
@@ -123,39 +126,41 @@ class ScheduleService {
 
   Future<void> _checkStaticConflict(ScheduleBlockModel newBlock) async {
     // 1. Check for Room Conflict (Any mayor in this room)
-    final roomSnap = await _db
-        .collection('scheduleBlocks')
-        .where('roomId', isEqualTo: newBlock.roomId)
-        .where('dayOfWeek', isEqualTo: newBlock.dayOfWeek)
-        .where('semester', isEqualTo: AppStrings.currentSemester)
-        .where('isActive', isEqualTo: true)
-        .get();
+    if (newBlock.roomId != 'unassigned') {
+      final roomSnap = await _db
+          .collection('scheduleBlocks')
+          .where('roomId', isEqualTo: newBlock.roomId)
+          .where('dayOfWeek', isEqualTo: newBlock.dayOfWeek)
+          .where('semester', isEqualTo: AppStrings.currentSemester)
+          .where('isActive', isEqualTo: true)
+          .get();
 
-    for (final doc in roomSnap.docs) {
-      if (doc.id == newBlock.blockId) continue;
-      final existing = ScheduleBlockModel.fromFirestore(doc);
-      if (existing.startTime.compareTo(newBlock.endTime) < 0 &&
-          newBlock.startTime.compareTo(existing.endTime) < 0) {
-        
-        if (existing.mayorId == newBlock.mayorId) {
-          // Same user, same room - use the custom message
-          throw ScheduleConflictException(
-            message: 'You already have a schedule for ${existing.subject} at ${existing.startTime}-${existing.endTime} today. Double check your time schedule.',
-            isOwnConflict: true,
-          );
-        } else {
-          // Different user, same room - block and notify
-          await _notifService.writeStaticConflictNotification(
-            mayorIdA: newBlock.mayorId,
-            mayorIdB: existing.mayorId,
-            sectionA: newBlock.courseSection,
-            sectionB: existing.courseSection,
-            roomId: newBlock.roomId,
-          );
-          throw ScheduleConflictException(
-            message: 'This room is already scheduled for ${existing.courseSection} at ${existing.startTime}-${existing.endTime}.',
-            isOwnConflict: false,
-          );
+      for (final doc in roomSnap.docs) {
+        if (doc.id == newBlock.blockId) continue;
+        final existing = ScheduleBlockModel.fromFirestore(doc);
+        if (existing.startTime.compareTo(newBlock.endTime) < 0 &&
+            newBlock.startTime.compareTo(existing.endTime) < 0) {
+          
+          if (existing.mayorId == newBlock.mayorId) {
+            // Same user, same room - use the custom message
+            throw ScheduleConflictException(
+              message: 'You already have a schedule for ${existing.subject} at ${existing.startTime}-${existing.endTime} today. Double check your time schedule.',
+              isOwnConflict: true,
+            );
+          } else {
+            // Different user, same room - block and notify
+            await _notifService.writeStaticConflictNotification(
+              mayorIdA: newBlock.mayorId,
+              mayorIdB: existing.mayorId,
+              sectionA: newBlock.courseSection,
+              sectionB: existing.courseSection,
+              roomId: newBlock.roomId,
+            );
+            throw ScheduleConflictException(
+              message: 'This room is already scheduled for ${existing.courseSection} at ${existing.startTime}-${existing.endTime}.',
+              isOwnConflict: false,
+            );
+          }
         }
       }
     }
@@ -268,6 +273,7 @@ class ScheduleService {
     required String blockId,
     required String roomId,
     required String mayorId,
+    required String mayorName,
     required String mayorSection,
     required String mayorDepartment,
   }) async {
@@ -328,6 +334,31 @@ class ScheduleService {
       {'status': 'occupied', 'currentOccupantBlockId': blockId},
     );
     await batch.commit();
+
+    // ── Auto-log the check-in to room usage logs ────────────────────
+    try {
+      final blockDoc = await _db.collection('scheduleBlocks').doc(blockId).get();
+      if (blockDoc.exists) {
+        final block = ScheduleBlockModel.fromFirestore(blockDoc);
+        final now = DateTime.now();
+        final dayFull = TimeUtils.dayLabel(TimeUtils.dayKey(now));
+        final schedule =
+            '${TimeUtils.toDisplayTime(block.startTime)}-${TimeUtils.toDisplayTime(block.endTime)}';
+        await _logService.logUsage(
+          roomId: roomId,
+          mayorId: mayorId,
+          mayorName: mayorName,
+          courseSection: block.courseSection,
+          subjectName: block.subject,
+          schedule: schedule,
+          dayOfWeek: dayFull,
+          isBorrowed: false,
+        );
+      }
+    } catch (_) {
+      // Log failure must never block the check-in flow.
+    }
+
     return null;
   }
 
