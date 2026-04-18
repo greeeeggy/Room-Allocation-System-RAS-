@@ -362,12 +362,79 @@ class ScheduleService {
     return null;
   }
 
+  /// Borrow check-in: a mayor uses one of their schedule blocks to occupy
+  /// a room that is NOT the block's assigned room.
+  ///
+  /// - Marks the block as checked_in
+  /// - Sets the borrowed room as occupied with the block as occupant
+  /// - Logs usage with isBorrowed = true
+  ///
+  /// Returns null on success, or error message on conflict.
+  Future<String?> borrowCheckIn({
+    required String blockId,
+    required String borrowedRoomId,
+    required String mayorId,
+    required String mayorName,
+  }) async {
+    // Check if the borrowed room is already occupied
+    final roomDoc = await _db.collection('rooms').doc(borrowedRoomId).get();
+    final roomData = roomDoc.data()!;
+
+    if (roomData['status'] == 'occupied') {
+      return 'This room is currently occupied.';
+    }
+
+    // Fetch the block details
+    final blockDoc = await _db.collection('scheduleBlocks').doc(blockId).get();
+    if (!blockDoc.exists) return 'Schedule block not found.';
+    final block = ScheduleBlockModel.fromFirestore(blockDoc);
+
+    // Mark block as checked_in and set room as occupied
+    final batch = _db.batch();
+    batch.update(
+      _db.collection('scheduleBlocks').doc(blockId),
+      {'checkInStatus': 'checked_in'},
+    );
+    batch.update(
+      _db.collection('rooms').doc(borrowedRoomId),
+      {'status': 'occupied', 'currentOccupantBlockId': blockId},
+    );
+    await batch.commit();
+
+    // Log usage with isBorrowed = true
+    try {
+      final now = DateTime.now();
+      final dayFull = TimeUtils.dayLabel(TimeUtils.dayKey(now));
+      final schedule =
+          '${TimeUtils.toDisplayTime(block.startTime)}-${TimeUtils.toDisplayTime(block.endTime)}';
+      await _logService.logUsage(
+        roomId: borrowedRoomId,
+        mayorId: mayorId,
+        mayorName: mayorName,
+        courseSection: block.courseSection,
+        subjectName: block.subject,
+        schedule: schedule,
+        dayOfWeek: dayFull,
+        isBorrowed: true,
+      );
+    } catch (_) {
+      // Log failure must never block the borrow flow.
+    }
+
+    return null;
+  }
+
   /// Early release: frees the room and marks the block as released.
   ///
   /// If the block had a conflict flag set, this also:
   ///   1. Clears hasConflict on both the releasing block and the other
   ///      conflicting block (if it can be identified).
   ///   2. Writes a conflict_resolved notification.
+  ///
+  /// The [roomId] parameter is used as a fallback; the method first queries
+  /// for the room whose `currentOccupantBlockId` matches [blockId] so that
+  /// borrowed rooms are released correctly (block.roomId still points to the
+  /// original assigned room, not the borrowed one).
   Future<void> releaseRoom({
     required String blockId,
     required String roomId,
@@ -378,13 +445,24 @@ class ScheduleService {
     final hadConflict =
         releasingDoc.exists && (releasingDoc['hasConflict'] as bool? ?? false);
 
+    // Find the actual room occupied by this block (handles borrowed rooms).
+    String actualRoomId = roomId;
+    final occupiedSnap = await _db
+        .collection('rooms')
+        .where('currentOccupantBlockId', isEqualTo: blockId)
+        .limit(1)
+        .get();
+    if (occupiedSnap.docs.isNotEmpty) {
+      actualRoomId = occupiedSnap.docs.first.id;
+    }
+
     final batch = _db.batch();
     batch.update(
       _db.collection('scheduleBlocks').doc(blockId),
       {'checkInStatus': 'released', 'hasConflict': false},
     );
     batch.update(
-      _db.collection('rooms').doc(roomId),
+      _db.collection('rooms').doc(actualRoomId),
       {'status': 'available', 'currentOccupantBlockId': null},
     );
     await batch.commit();

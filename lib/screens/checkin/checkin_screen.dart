@@ -6,6 +6,7 @@ import '../../core/theme.dart';
 import '../../core/utils/time_utils.dart';
 import '../../models/schedule_block_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/room_provider.dart';
 import '../../providers/schedule_provider.dart';
 
 class CheckInScreen extends ConsumerStatefulWidget {
@@ -95,8 +96,16 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
 
           // Already checked in — show release option
           if (block.checkInStatus == CheckInStatus.checkedIn || _checkedIn) {
+            // Find which room we are ACTUALLY in (for borrowed rooms)
+            final rooms = ref.watch(allRoomsProvider).valueOrNull ?? [];
+            final actualRoom = rooms
+                .where((r) => r.currentOccupantBlockId == block.blockId)
+                .firstOrNull;
+            final roomDisplay = actualRoom?.roomNumber ?? block.roomId;
+
             return _CheckedInView(
               block: block,
+              actualRoomDisplay: roomDisplay,
               loading: _loading,
               onRelease: () => _releaseRoom(block),
             );
@@ -201,11 +210,13 @@ class _PendingView extends StatelessWidget {
 
 class _CheckedInView extends StatelessWidget {
   final ScheduleBlockModel block;
+  final String actualRoomDisplay;
   final bool loading;
   final VoidCallback onRelease;
 
   const _CheckedInView({
     required this.block,
+    required this.actualRoomDisplay,
     required this.loading,
     required this.onRelease,
   });
@@ -222,7 +233,7 @@ class _CheckedInView extends StatelessWidget {
             icon: Icons.check_circle_outline,
             color: Colors.green.shade700,
             message:
-                'You are checked in to ${block.roomId}. Room is marked occupied.',
+                'You are checked in to Room $actualRoomDisplay. Room is marked occupied.',
           ),
           const SizedBox(height: 20),
 

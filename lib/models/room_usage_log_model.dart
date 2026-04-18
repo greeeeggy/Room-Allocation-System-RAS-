@@ -11,6 +11,8 @@ class RoomUsageLogModel {
   final String dayOfWeek;
   final bool isBorrowed;
   final DateTime checkedInAt;
+  /// Only set for borrowed entries — the parsed end time used for auto-release.
+  final DateTime? borrowEndTime;
 
   RoomUsageLogModel({
     required this.logId,
@@ -23,6 +25,7 @@ class RoomUsageLogModel {
     required this.dayOfWeek,
     required this.isBorrowed,
     required this.checkedInAt,
+    this.borrowEndTime,
   });
 
   factory RoomUsageLogModel.fromFirestore(DocumentSnapshot doc) {
@@ -39,6 +42,8 @@ class RoomUsageLogModel {
       isBorrowed: data['isBorrowed'] as bool? ?? false,
       checkedInAt:
           (data['checkedInAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      borrowEndTime:
+          (data['borrowEndTime'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -53,5 +58,7 @@ class RoomUsageLogModel {
         'dayOfWeek': dayOfWeek,
         'isBorrowed': isBorrowed,
         'checkedInAt': FieldValue.serverTimestamp(),
+        if (borrowEndTime != null)
+          'borrowEndTime': Timestamp.fromDate(borrowEndTime!),
       };
 }

@@ -64,3 +64,9 @@ final nextClassProvider = Provider<ScheduleBlockModel?>((ref) {
       (a, b) => a.startTime.compareTo(b.startTime));
   return upcoming.first;
 });
+
+/// Fetches a single block by ID.
+final scheduleBlockProvider =
+    FutureProvider.family<ScheduleBlockModel?, String>((ref, blockId) {
+  return ref.watch(scheduleServiceProvider).getBlock(blockId);
+});

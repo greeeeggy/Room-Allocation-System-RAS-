@@ -18,6 +18,7 @@ class RoomUsageLogService {
     required String schedule,
     required String dayOfWeek,
     required bool isBorrowed,
+    DateTime? borrowEndTime,
   }) async {
     final ref = _db.collection('room_usage_logs').doc();
     final log = RoomUsageLogModel(
@@ -31,6 +32,7 @@ class RoomUsageLogService {
       dayOfWeek: dayOfWeek,
       isBorrowed: isBorrowed,
       checkedInAt: DateTime.now(), // server timestamp used in toFirestore()
+      borrowEndTime: borrowEndTime,
     );
     await ref.set(log.toFirestore());
   }

@@ -72,28 +72,6 @@ class _RoomDetailBody extends ConsumerWidget {
   const _RoomDetailBody(
       {required this.room, required this.todayBlocksAsync, required this.roomId});
 
-  Color _statusColor(RoomStatus s) {
-    switch (s) {
-      case RoomStatus.occupied:
-        return AppColors.occupied;
-      case RoomStatus.soon:
-        return AppColors.soon;
-      case RoomStatus.available:
-        return AppColors.available;
-    }
-  }
-
-  String _statusLabel(RoomStatus s) {
-    switch (s) {
-      case RoomStatus.occupied:
-        return 'Occupied';
-      case RoomStatus.soon:
-        return 'Occupied Soon';
-      case RoomStatus.available:
-        return 'Available';
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).valueOrNull;
@@ -109,29 +87,10 @@ class _RoomDetailBody extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      'Room ${room.roomNumber}',
-                      style: const TextStyle(
-                          fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _statusColor(room.status).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        _statusLabel(room.status),
-                        style: TextStyle(
-                            color: _statusColor(room.status),
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
+                Text(
+                  'Room ${room.roomNumber}',
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 Text('Floor ${room.floor}',
@@ -141,7 +100,9 @@ class _RoomDetailBody extends ConsumerWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        _RoomStatusBadge(room: room),
+        const SizedBox(height: 24),
 
         // Features
         const Text('Features',
@@ -258,7 +219,6 @@ class _RoomDetailBody extends ConsumerWidget {
           mayorId: user.userId,
           mayorName: mayorName,
           dayOfWeek: dayFull,
-          defaultCourseSection: user.courseSection ?? '',
         );
       },
     );
@@ -300,7 +260,6 @@ class _BorrowForm extends ConsumerStatefulWidget {
   final String mayorId;
   final String mayorName;
   final String dayOfWeek;
-  final String defaultCourseSection;
 
   const _BorrowForm({
     required this.roomId,
@@ -308,7 +267,6 @@ class _BorrowForm extends ConsumerStatefulWidget {
     required this.mayorId,
     required this.mayorName,
     required this.dayOfWeek,
-    required this.defaultCourseSection,
   });
 
   @override
@@ -316,47 +274,38 @@ class _BorrowForm extends ConsumerStatefulWidget {
 }
 
 class _BorrowFormState extends ConsumerState<_BorrowForm> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _courseSectionCtrl;
-  final _subjectCtrl = TextEditingController();
-  final _scheduleCtrl = TextEditingController();
+  String? _selectedBlockId;
   bool _submitting = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _courseSectionCtrl =
-        TextEditingController(text: widget.defaultCourseSection);
-  }
-
-  @override
-  void dispose() {
-    _courseSectionCtrl.dispose();
-    _subjectCtrl.dispose();
-    _scheduleCtrl.dispose();
-    super.dispose();
-  }
-
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_selectedBlockId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a schedule.')),
+      );
+      return;
+    }
 
     setState(() => _submitting = true);
 
     try {
-      final logService = ref.read(roomUsageLogServiceProvider);
-      await logService.logUsage(
-        roomId: widget.roomId,
-        mayorId: widget.mayorId,
-        mayorName: widget.mayorName,
-        courseSection: _courseSectionCtrl.text.trim(),
-        subjectName: _subjectCtrl.text.trim(),
-        schedule: _scheduleCtrl.text.trim(),
-        dayOfWeek: widget.dayOfWeek,
-        isBorrowed: true,
-      );
+      final error = await ref.read(scheduleServiceProvider).borrowCheckIn(
+            blockId: _selectedBlockId!,
+            borrowedRoomId: widget.roomId,
+            mayorId: widget.mayorId,
+            mayorName: widget.mayorName,
+          );
 
-      // Mark room as occupied
-      await ref.read(roomServiceProvider).setRoomOccupied(widget.roomId);
+      if (error != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: Colors.red.shade700,
+            ),
+          );
+        }
+        return;
+      }
 
       if (mounted) {
         Navigator.pop(context);
@@ -384,6 +333,8 @@ class _BorrowFormState extends ConsumerState<_BorrowForm> {
 
   @override
   Widget build(BuildContext context) {
+    final blocksAsync = ref.watch(myBlocksProvider);
+
     return Padding(
       padding: EdgeInsets.only(
         left: 24,
@@ -391,119 +342,142 @@ class _BorrowFormState extends ConsumerState<_BorrowForm> {
         top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Title
+            const Text(
+              'Use This Room',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Select one of your schedules to check in',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+
+            // Auto-detected info chips
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _InfoChip(icon: Icons.person, label: widget.mayorName),
+                _InfoChip(
+                    icon: Icons.calendar_today, label: widget.dayOfWeek),
+                _InfoChip(
+                    icon: Icons.meeting_room,
+                    label: 'Room ${widget.roomNumber}'),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Schedule block dropdown
+            blocksAsync.when(
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Text('Error loading schedules: $e'),
+              data: (blocks) {
+                // Show only pending or released blocks (not already checked in)
+                final available = blocks
+                    .where((b) =>
+                        b.checkInStatus == CheckInStatus.pending ||
+                        b.checkInStatus == CheckInStatus.released ||
+                        b.checkInStatus == CheckInStatus.noShow)
+                    .toList();
+
+                if (available.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border:
+                          Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            color: Colors.orange, size: 20),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'No available schedules. All your blocks are currently checked in or you have no schedules.',
+                            style: TextStyle(
+                                color: Colors.orange, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (_selectedBlockId != null &&
+                    !available.any((b) => b.blockId == _selectedBlockId)) {
+                  _selectedBlockId = null;
+                }
+
+                return DropdownButtonFormField<String>(
+                  value: _selectedBlockId,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.schedule_outlined),
+                    labelText: 'Select Schedule',
+                    border: OutlineInputBorder(),
                   ),
+                  isExpanded: true,
+                  items: available
+                      .map((b) => DropdownMenuItem(
+                            value: b.blockId,
+                            child: Text(
+                              '${b.subject} · ${TimeUtils.toDisplayTime(b.startTime)}-${TimeUtils.toDisplayTime(b.endTime)} (${b.dayOfWeek})',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) =>
+                      setState(() => _selectedBlockId = v),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // Submit button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _submitting ? null : _submit,
+                icon: _submitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
+                    : const Icon(Icons.login),
+                label:
+                    Text(_submitting ? 'Checking in...' : 'Check In'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade600,
+                  foregroundColor: Colors.white,
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // Title
-              const Text(
-                'Use This Room',
-                style: TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Fill in the details to check in',
-                style: TextStyle(
-                    color: Colors.grey.shade600, fontSize: 13),
-              ),
-              const SizedBox(height: 20),
-
-              // Auto-detected info chips
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _InfoChip(
-                      icon: Icons.person, label: widget.mayorName),
-                  _InfoChip(
-                      icon: Icons.calendar_today,
-                      label: widget.dayOfWeek),
-                  _InfoChip(
-                      icon: Icons.meeting_room,
-                      label: 'Room ${widget.roomNumber}'),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Course Year and Section
-              TextFormField(
-                controller: _courseSectionCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Course Year and Section',
-                  hintText: 'e.g. BSIE 2-E',
-                  prefixIcon: Icon(Icons.school_outlined),
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              const SizedBox(height: 14),
-
-              // Subject Name
-              TextFormField(
-                controller: _subjectCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Subject Name',
-                  hintText: 'e.g. WSM',
-                  prefixIcon: Icon(Icons.book_outlined),
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              const SizedBox(height: 14),
-
-              // Schedule
-              TextFormField(
-                controller: _scheduleCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Schedule',
-                  hintText: 'e.g. 7:00-9:00am',
-                  prefixIcon: Icon(Icons.access_time),
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              const SizedBox(height: 24),
-
-              // Submit button
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: _submitting ? null : _submit,
-                  icon: _submitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2))
-                      : const Icon(Icons.login),
-                  label: Text(
-                      _submitting ? 'Checking in...' : 'Check In'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange.shade600,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -629,6 +603,87 @@ class _EmptySchedule extends StatelessWidget {
                 style: TextStyle(color: AppColors.available)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RoomStatusBadge extends ConsumerWidget {
+  final RoomModel room;
+  const _RoomStatusBadge({required this.room});
+
+  Color _statusColor(RoomStatus s) {
+    switch (s) {
+      case RoomStatus.occupied:
+        return AppColors.occupied;
+      case RoomStatus.soon:
+        return AppColors.soon;
+      case RoomStatus.available:
+        return AppColors.available;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (room.status == RoomStatus.available || room.currentOccupantBlockId == null) {
+      String label = 'Available';
+      if (room.status == RoomStatus.occupied) label = 'Occupied';
+      if (room.status == RoomStatus.soon) label = 'Occupied Soon';
+      
+      return _BadgeContainer(
+        color: _statusColor(room.status),
+        label: label,
+      );
+    }
+
+    final blockAsync = ref.watch(scheduleBlockProvider(room.currentOccupantBlockId!));
+
+    return blockAsync.when(
+      loading: () => _BadgeContainer(
+          color: _statusColor(room.status),
+          label: room.status == RoomStatus.occupied ? 'Occupied' : 'Occupied Soon'),
+      error: (_, __) => _BadgeContainer(
+          color: _statusColor(room.status),
+          label: room.status == RoomStatus.occupied ? 'Occupied' : 'Occupied Soon'),
+      data: (block) {
+        if (block == null) {
+          return _BadgeContainer(
+              color: _statusColor(room.status),
+              label: room.status == RoomStatus.occupied ? 'Occupied' : 'Occupied Soon');
+        }
+
+        final section = block.courseSection;
+        final start = TimeUtils.toDisplayTime(block.startTime);
+        final end = TimeUtils.toDisplayTime(block.endTime);
+
+        final label = room.status == RoomStatus.occupied
+            ? 'Occupied by $section until $end'
+            : '$section will soon occupy this room at $start-$end';
+
+        return _BadgeContainer(color: _statusColor(room.status), label: label);
+      },
+    );
+  }
+}
+
+class _BadgeContainer extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _BadgeContainer({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+            color: color, fontWeight: FontWeight.w600, fontSize: 12),
       ),
     );
   }

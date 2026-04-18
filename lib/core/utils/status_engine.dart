@@ -40,10 +40,11 @@ class StatusEngine {
 
     // ── 1. Auto-release ─────────────────────────────────────────────────
     // checked_in blocks whose endTime has passed → release room
+    // Find the room by currentOccupantBlockId (works for both normal
+    // and borrowed check-ins).
     final checkedInSnap = await _db
         .collection('scheduleBlocks')
         .where('checkInStatus', isEqualTo: 'checked_in')
-        .where('dayOfWeek', isEqualTo: todayKey)
         .get();
 
     for (final doc in checkedInSnap.docs) {
@@ -53,10 +54,20 @@ class StatusEngine {
           'checkInStatus': 'released',
           'hasConflict': false,
         });
-        batch.update(
-          _db.collection('rooms').doc(doc['roomId'] as String),
-          {'status': 'available', 'currentOccupantBlockId': null},
-        );
+
+        // Find the room occupied by this block (handles both normal
+        // check-ins and borrowed rooms).
+        final occupiedSnap = await _db
+            .collection('rooms')
+            .where('currentOccupantBlockId', isEqualTo: doc.id)
+            .limit(1)
+            .get();
+
+        for (final roomDoc in occupiedSnap.docs) {
+          batch.update(roomDoc.reference,
+              {'status': 'available', 'currentOccupantBlockId': null});
+        }
+
         hasPendingWrites = true;
       }
     }
@@ -87,7 +98,7 @@ class StatusEngine {
         .where('status', isEqualTo: 'soon')
         .get();
     for (final doc in soonRoomsSnap.docs) {
-      batch.update(doc.reference, {'status': 'available'});
+      batch.update(doc.reference, {'status': 'available', 'currentOccupantBlockId': null});
       hasPendingWrites = true;
     }
 
@@ -100,14 +111,14 @@ class StatusEngine {
       if (minutesUntil >= 0 && minutesUntil <= 15) {
         batch.update(
           _db.collection('rooms').doc(doc['roomId'] as String),
-          {'status': 'soon'},
+          {'status': 'soon', 'currentOccupantBlockId': doc.id},
         );
         hasPendingWrites = true;
       }
     }
-
     if (hasPendingWrites) {
       await batch.commit();
     }
   }
 }
+

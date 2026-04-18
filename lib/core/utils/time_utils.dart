@@ -75,4 +75,46 @@ class TimeUtils {
     final end = parseHHmm(endHHmm, now);
     return now.isAfter(start) && now.isBefore(end);
   }
+
+  /// Parse the end time from a borrow schedule string and return a DateTime.
+  ///
+  /// Accepts formats like "7:00-9:00", "07:00 - 09:00",
+  /// "7:00 AM - 9:00 PM", "7:00AM-9:00PM".
+  /// Returns null if the string cannot be parsed.
+  static DateTime? parseBorrowEndTime(String schedule) {
+    try {
+      // Strip spaces then split on '-' keeping only parts with digits
+      final parts = schedule
+          .split('-')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+      if (parts.length < 2) return null;
+
+      // The end time is the last part
+      final rawEnd = parts.last.trim();
+
+      // Remove AM/PM markers and parse
+      final ispm = rawEnd.toLowerCase().contains('pm');
+      final clean = rawEnd
+          .toLowerCase()
+          .replaceAll('am', '')
+          .replaceAll('pm', '')
+          .trim();
+
+      final colonParts = clean.split(':');
+      if (colonParts.length < 2) return null;
+      int hour = int.parse(colonParts[0].trim());
+      final minute = int.parse(colonParts[1].trim());
+
+      // Convert 12-hour → 24-hour
+      if (ispm && hour != 12) hour += 12;
+      if (!ispm && hour == 12) hour = 0;
+
+      final now = DateTime.now();
+      return DateTime(now.year, now.month, now.day, hour, minute);
+    } catch (_) {
+      return null;
+    }
+  }
 }
