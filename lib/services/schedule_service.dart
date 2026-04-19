@@ -109,6 +109,7 @@ class ScheduleService {
   /// mayorId, courseSection — those fields are managed elsewhere and must not
   /// be overwritten by an edit, which would risk clobbering concurrent changes
   /// or triggering security-rule rejections on protected fields.
+  Future<void> updateBlock(ScheduleBlockModel block) async {
     await _db
         .collection('scheduleBlocks')
         .doc(block.blockId)

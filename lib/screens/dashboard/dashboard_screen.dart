@@ -353,6 +353,7 @@ class _RoomGrid extends StatelessWidget {
       case RoomStatus.soon:
         return AppColors.soon;
       case RoomStatus.available:
+      case RoomStatus.noClass:
         return AppColors.available;
     }
   }

@@ -277,6 +277,7 @@ class _RoomTile extends StatelessWidget {
       case RoomStatus.soon:
         return AppColors.soon;
       case RoomStatus.available:
+      case RoomStatus.noClass:
         return AppColors.available;
     }
   }
@@ -289,6 +290,8 @@ class _RoomTile extends StatelessWidget {
         return 'Soon';
       case RoomStatus.available:
         return 'Available';
+      case RoomStatus.noClass:
+        return 'No Class';
     }
   }
 
