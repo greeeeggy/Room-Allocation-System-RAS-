@@ -15,6 +15,7 @@ class ScheduleBlockModel {
   final bool isActive;
   final CheckInStatus checkInStatus;
   final bool hasConflict;
+  final String? noClassDate; // yyyy-MM-dd
 
   ScheduleBlockModel({
     required this.blockId,
@@ -30,6 +31,7 @@ class ScheduleBlockModel {
     required this.isActive,
     required this.checkInStatus,
     required this.hasConflict,
+    this.noClassDate,
   });
 
   factory ScheduleBlockModel.fromFirestore(DocumentSnapshot doc) {
@@ -48,6 +50,7 @@ class ScheduleBlockModel {
       isActive: data['isActive'] as bool? ?? true,
       checkInStatus: _parseCheckInStatus(data['checkInStatus'] as String?),
       hasConflict: data['hasConflict'] as bool? ?? false,
+      noClassDate: data['noClassDate'] as String?,
     );
   }
 
@@ -83,6 +86,7 @@ class ScheduleBlockModel {
     'isActive': isActive,
     'checkInStatus': _checkInStatusToString(checkInStatus),
     'hasConflict': hasConflict,
+    'noClassDate': noClassDate,
   };
 
   ScheduleBlockModel copyWith({
@@ -99,6 +103,7 @@ class ScheduleBlockModel {
     bool? isActive,
     CheckInStatus? checkInStatus,
     bool? hasConflict,
+    String? noClassDate,
   }) {
     return ScheduleBlockModel(
       blockId: blockId ?? this.blockId,
@@ -114,6 +119,7 @@ class ScheduleBlockModel {
       isActive: isActive ?? this.isActive,
       checkInStatus: checkInStatus ?? this.checkInStatus,
       hasConflict: hasConflict ?? this.hasConflict,
+      noClassDate: noClassDate ?? this.noClassDate,
     );
   }
 }

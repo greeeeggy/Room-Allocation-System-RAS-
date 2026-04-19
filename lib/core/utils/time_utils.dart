@@ -117,4 +117,35 @@ class TimeUtils {
       return null;
     }
   }
+
+  /// Returns the current date in "yyyy-MM-dd" format.
+  static String todayDateKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Finds the closest date (today or future) matching the given day of week.
+  /// dayOfWeek is 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'.
+  static String getNextOccurrenceDate(String dayOfWeek) {
+    const map = {
+      'Mon': 1,
+      'Tue': 2,
+      'Wed': 3,
+      'Thu': 4,
+      'Fri': 5,
+      'Sat': 6,
+      'Sun': 7,
+    };
+    final targetWeekday = map[dayOfWeek] ?? 1;
+    DateTime date = DateTime.now();
+
+    // Normalize to date only
+    date = DateTime(date.year, date.month, date.day);
+
+    while (date.weekday != targetWeekday) {
+      date = date.add(const Duration(days: 1));
+    }
+
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
 }

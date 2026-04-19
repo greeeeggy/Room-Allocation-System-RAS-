@@ -172,8 +172,8 @@ class _RoomDetailBody extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
 
-        // Use This Room button — visible to mayors only if room is available
-        if (isMayor && room.status == RoomStatus.available)
+        // Use This Room button — visible to mayors only if room is available or noClass (cancelled)
+        if (isMayor && (room.status == RoomStatus.available || room.status == RoomStatus.noClass))
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -620,6 +620,8 @@ class _RoomStatusBadge extends ConsumerWidget {
         return AppColors.soon;
       case RoomStatus.available:
         return AppColors.available;
+      case RoomStatus.noClass:
+        return Colors.blue.shade300; // Distinct color for no class
     }
   }
 
@@ -629,6 +631,7 @@ class _RoomStatusBadge extends ConsumerWidget {
       String label = 'Available';
       if (room.status == RoomStatus.occupied) label = 'Occupied';
       if (room.status == RoomStatus.soon) label = 'Occupied Soon';
+      if (room.status == RoomStatus.noClass) label = 'No Class Today';
       
       return _BadgeContainer(
         color: _statusColor(room.status),
@@ -658,7 +661,9 @@ class _RoomStatusBadge extends ConsumerWidget {
 
         final label = room.status == RoomStatus.occupied
             ? 'Occupied by $section until $end'
-            : '$section will soon occupy this room at $start-$end';
+            : (room.status == RoomStatus.noClass
+                ? '$section doesnt have a class today'
+                : '$section will soon occupy this room at $start-$end');
 
         return _BadgeContainer(color: _statusColor(room.status), label: label);
       },

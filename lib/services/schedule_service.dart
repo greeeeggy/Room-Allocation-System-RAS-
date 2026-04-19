@@ -109,8 +109,6 @@ class ScheduleService {
   /// mayorId, courseSection — those fields are managed elsewhere and must not
   /// be overwritten by an edit, which would risk clobbering concurrent changes
   /// or triggering security-rule rejections on protected fields.
-  Future<void> updateBlock(ScheduleBlockModel block) async {
-    await _checkStaticConflict(block);
     await _db
         .collection('scheduleBlocks')
         .doc(block.blockId)
@@ -122,6 +120,17 @@ class ScheduleService {
           'startTime': block.startTime,
           'endTime': block.endTime,
         });
+  }
+
+  /// Mark the next upcoming occurrence of this schedule as "No Class".
+  Future<void> markNoClassToday(String blockId) async {
+    final block = await getBlock(blockId);
+    if (block == null) return;
+
+    final nextDate = TimeUtils.getNextOccurrenceDate(block.dayOfWeek);
+    await _db.collection('scheduleBlocks').doc(blockId).update({
+      'noClassDate': nextDate,
+    });
   }
 
   Future<void> _checkStaticConflict(ScheduleBlockModel newBlock) async {

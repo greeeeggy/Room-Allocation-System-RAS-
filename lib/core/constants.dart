@@ -2,7 +2,7 @@
 
 enum UserRole { mayor, councilPresident }
 
-enum RoomStatus { available, occupied, soon }
+enum RoomStatus { available, occupied, soon, noClass }
 
 enum DayOfWeek { Sun, Mon, Tue, Wed, Thu, Fri, Sat }
 

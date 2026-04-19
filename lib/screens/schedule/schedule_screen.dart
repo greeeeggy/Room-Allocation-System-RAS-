@@ -251,9 +251,8 @@ class _BlockCardState extends ConsumerState<_BlockCard> {
         borderRadius: BorderRadius.circular(12),
         // When checked in, go to the check-in screen (which shows the Release button).
         // Otherwise go to the edit screen.
-        onTap: () => isCheckedIn
-            ? context.push('/schedule/checkin/${block.blockId}')
-            : context.push('/schedule/edit/${block.blockId}'),
+        onTap: () => context.push('/schedule/checkin/${block.blockId}'),
+        onLongPress: () => context.push('/schedule/edit/${block.blockId}'),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(

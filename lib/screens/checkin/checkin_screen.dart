@@ -121,9 +121,37 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
             canCheckIn: canCheckIn,
             loading: _loading,
             conflictSection: _conflictSection,
-            onCheckIn: canCheckIn && !_loading
-                ? () => _attemptCheckIn(block)
-                : null,
+            onCheckIn: canCheckIn && !_loading ? () => _attemptCheckIn(block) : null,
+            onNoClass: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Confirm No Class'),
+                  content: const Text(
+                      'Are you sure you want to mark this schedule as "No Class"? This will make the room available for others today.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel')),
+                    ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Mark No Class')),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                setState(() => _loading = true);
+                await ref
+                    .read(scheduleServiceProvider)
+                    .markNoClassToday(block.blockId);
+                if (mounted) {
+                  setState(() => _loading = false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Scheduled marked as "No Class".')),
+                  );
+                }
+              }
+            },
           );
         },
       ),
@@ -140,6 +168,7 @@ class _PendingView extends StatelessWidget {
   final bool loading;
   final String? conflictSection;
   final VoidCallback? onCheckIn;
+  final VoidCallback? onNoClass;
 
   const _PendingView({
     required this.block,
@@ -148,6 +177,7 @@ class _PendingView extends StatelessWidget {
     required this.loading,
     required this.conflictSection,
     required this.onCheckIn,
+    required this.onNoClass,
   });
 
   @override
@@ -179,23 +209,70 @@ class _PendingView extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Check-in button
+            Consumer(builder: (context, ref, child) {
+              final rooms = ref.watch(allRoomsProvider).valueOrNull ?? [];
+              final room = rooms.where((r) => r.roomId == block.roomId).firstOrNull;
+              final isOccupied = room?.status == RoomStatus.occupied;
+              final isToday = block.dayOfWeek == TimeUtils.dayKey(DateTime.now());
+              final isCancelled = block.noClassDate == TimeUtils.todayDateKey();
+
+              final actualCanCheckIn = canCheckIn && isToday && !isOccupied && !isCancelled;
+
+              String? disableReason;
+              if (!isToday) {
+                disableReason = 'This schedule is not for today (${block.dayOfWeek}).';
+              } else if (isCancelled) {
+                disableReason = 'You marked this schedule as "No Class" today.';
+              } else if (minutesUntil > 15) {
+                disableReason = 'Check-in opens 15 minutes before start time.';
+              } else if (isOccupied) {
+                disableReason = 'Room is currently occupied by someone else.';
+              }
+
+              return Column(
+                children: [
+                  if (disableReason != null && !loading)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _InfoBanner(
+                        icon: Icons.info_outline,
+                        color: Colors.orange.shade700,
+                        message: disableReason,
+                      ),
+                    ),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      icon: loading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : const Icon(Icons.login),
+                      label: Text(loading ? 'Checking in...' : 'Check In Now'),
+                      onPressed: actualCanCheckIn && !loading ? onCheckIn : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: actualCanCheckIn ? AppColors.primary : Colors.grey.shade400,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
+            const SizedBox(height: 16),
+
+            // No Class button
             SizedBox(
               width: double.infinity,
               height: 52,
-              child: ElevatedButton.icon(
-                icon: loading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Icon(Icons.login),
-                label: Text(loading ? 'Checking in...' : 'Check In Now'),
-                onPressed: onCheckIn,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: canCheckIn
-                      ? AppColors.primary
-                      : Colors.grey.shade400,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.event_busy, color: Colors.orange),
+                label: const Text('No Class Today', style: TextStyle(color: Colors.orange)),
+                onPressed: loading ? null : onNoClass,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.orange),
                 ),
               ),
             ),

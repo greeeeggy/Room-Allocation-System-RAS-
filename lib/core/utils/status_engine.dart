@@ -90,30 +90,60 @@ class StatusEngine {
       }
     }
 
-    // ── 3. "Soon" status ─────────────────────────────────────────────────
-    // Reset any rooms currently marked 'soon' back to 'available',
-    // then re-evaluate which rooms should be 'soon' right now.
-    final soonRoomsSnap = await _db
+    // ── 3. "Soon" & "No Class" status ──────────────────────────────────
+    // 1. Identify currently occupied rooms so we don't overwrite them.
+    final occupiedRoomsSnap = await _db
         .collection('rooms')
-        .where('status', isEqualTo: 'soon')
+        .where('status', isEqualTo: 'occupied')
         .get();
-    for (final doc in soonRoomsSnap.docs) {
+    final occupiedRoomIds = occupiedRoomsSnap.docs.map((d) => d.id).toSet();
+
+    // 2. Reset any rooms currently marked 'soon' or 'noClass' back to 'available',
+    // then re-evaluate which rooms should be 'soon' or 'noClass' right now.
+    final soonNoClassRoomsSnap = await _db
+        .collection('rooms')
+        .where('status', whereIn: ['soon', 'noClass'])
+        .get();
+    for (final doc in soonNoClassRoomsSnap.docs) {
       batch.update(doc.reference, {'status': 'available', 'currentOccupantBlockId': null});
       hasPendingWrites = true;
     }
 
     // Re-run the pending snap (already fetched above) to find blocks
-    // starting within the next 15 minutes.
+    // starting within the next 15 minutes OR currently active but cancelled.
     for (final doc in pendingSnap.docs) {
-      // Skip if this block was just marked no_show above
-      final startTime = TimeUtils.parseHHmm(doc['startTime'] as String, now);
+      final startTimeStr = doc['startTime'] as String;
+      final endTimeStr = doc['endTime'] as String;
+      final startTime = TimeUtils.parseHHmm(startTimeStr, now);
+      final endTime = TimeUtils.parseHHmm(endTimeStr, now);
+      
+      final noClassDate = doc['noClassDate'] as String?;
+      final isCancelledToday = (noClassDate == TimeUtils.todayDateKey());
+
+      // Logic for "Soon" notice window (starts 15 mins before)
       final minutesUntil = startTime.difference(now).inMinutes;
-      if (minutesUntil >= 0 && minutesUntil <= 15) {
-        batch.update(
-          _db.collection('rooms').doc(doc['roomId'] as String),
-          {'status': 'soon', 'currentOccupantBlockId': doc.id},
-        );
-        hasPendingWrites = true;
+      final inSoonWindow = minutesUntil >= 0 && minutesUntil <= 15;
+      
+      // Logic for "Occupied" window (now between start and end)
+      final currentlyActive = now.isAfter(startTime) && now.isBefore(endTime);
+
+      // ONLY apply soon/noClass if the room is NOT currently occupied.
+      if (!occupiedRoomIds.contains(doc['roomId'])) {
+        if (isCancelledToday && (inSoonWindow || currentlyActive)) {
+          // Mark as noClass notice
+          batch.update(
+            _db.collection('rooms').doc(doc['roomId'] as String),
+            {'status': 'noClass', 'currentOccupantBlockId': doc.id},
+          );
+          hasPendingWrites = true;
+        } else if (!isCancelledToday && inSoonWindow) {
+          // Mark as soon
+          batch.update(
+            _db.collection('rooms').doc(doc['roomId'] as String),
+            {'status': 'soon', 'currentOccupantBlockId': doc.id},
+          );
+          hasPendingWrites = true;
+        }
       }
     }
     if (hasPendingWrites) {
