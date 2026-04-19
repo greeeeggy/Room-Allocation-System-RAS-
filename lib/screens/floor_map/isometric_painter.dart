@@ -37,6 +37,8 @@ class IsometricFloorPainter extends CustomPainter {
         return AppColors.soon;
       case RoomStatus.available:
         return AppColors.available;
+      case RoomStatus.noClass:
+        return Colors.blueGrey.shade300;
     }
   }
 

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum NotificationType { conflictDetected, conflictResolved, staticScheduleConflict }
+enum NotificationType { conflictDetected, conflictResolved, staticScheduleConflict, lostItemPosted }
 
 class NotificationModel {
   final String notifId;
@@ -15,6 +15,10 @@ class NotificationModel {
   final String? sectionA;   // first conflicting section
   final String? sectionB;   // second conflicting section
 
+  // Lost & Found navigation reference
+  final String? lostItemId;
+  final String? lostItemMessage;
+
   NotificationModel({
     required this.notifId,
     required this.recipientId,
@@ -25,6 +29,8 @@ class NotificationModel {
     required this.createdAt,
     this.sectionA,
     this.sectionB,
+    this.lostItemId,
+    this.lostItemMessage,
   });
 
   factory NotificationModel.fromFirestore(DocumentSnapshot doc) {
@@ -41,6 +47,8 @@ class NotificationModel {
           (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       sectionA: d['sectionA'] as String?,
       sectionB: d['sectionB'] as String?,
+      lostItemId: d['lostItemId'] as String?,
+      lostItemMessage: d['lostItemMessage'] as String?,
     );
   }
 
@@ -50,6 +58,8 @@ class NotificationModel {
         return NotificationType.conflictResolved;
       case 'static_schedule_conflict':
         return NotificationType.staticScheduleConflict;
+      case 'lost_item_posted':
+        return NotificationType.lostItemPosted;
       default:
         return NotificationType.conflictDetected;
     }
@@ -61,6 +71,8 @@ class NotificationModel {
         return 'conflict_resolved';
       case NotificationType.staticScheduleConflict:
         return 'static_schedule_conflict';
+      case NotificationType.lostItemPosted:
+        return 'lost_item_posted';
       case NotificationType.conflictDetected:
         return 'conflict_detected';
     }
@@ -76,5 +88,7 @@ class NotificationModel {
         'createdAt': FieldValue.serverTimestamp(),
         'sectionA': sectionA,
         'sectionB': sectionB,
+        'lostItemId': lostItemId,
+        'lostItemMessage': lostItemMessage,
       };
 }

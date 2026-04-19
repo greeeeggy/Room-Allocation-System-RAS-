@@ -32,6 +32,10 @@ dependencies:
   # Image loading
   cached_network_image: ^3.3.1
 
+  # Lost & Found
+  image_picker: ^1.1.2
+  uuid: ^4.5.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

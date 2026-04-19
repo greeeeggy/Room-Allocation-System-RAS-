@@ -2,9 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can read their own profile; anyone logged in can read (for directory)
+    // Users can read their own profile; anyone logged in can read (for directory and notifications)
     match /users/{userId} {
-      allow read: if request.auth != null;
+      allow get, list: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
@@ -52,6 +52,23 @@ service cloud.firestore {
     match /room_usage_logs/{logId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
+    }
+
+    // Lost & Found items — any auth'd user can read/create
+    // Only the original poster can update (mark claimed) or delete
+    match /lost_items/{itemId} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && resource.data.posterId == request.auth.uid;
+    }
+
+    // Messages — any auth'd user can read/create
+    // Only the sender OR the lost item poster can delete
+    match /lost_item_messages/{msgId} {
+      allow read, create: if request.auth != null;
+      allow delete: if request.auth != null
+        && (resource.data.senderId == request.auth.uid
+            || get(/databases/$(database)/documents/lost_items/$(resource.data.itemId)).data.posterId == request.auth.uid);
     }
 
   }

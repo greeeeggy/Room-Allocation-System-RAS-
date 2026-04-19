@@ -15,10 +15,16 @@ import '../screens/notifications/notification_screen.dart';
 import '../screens/directory/council_directory_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/settings/settings_screen.dart';
+import 'package:room_availability_app/screens/lost_and_found/lost_and_found_screen.dart';
+import 'package:room_availability_app/screens/lost_and_found/lost_item_detail_screen.dart';
+import 'package:room_availability_app/screens/lost_and_found/post_lost_item_screen.dart';
 import '../screens/mayors/mayor_management_screen.dart';
+
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: '/login',
     refreshListenable: _AuthRefreshListenable(ref),
     redirect: (context, state) {
@@ -131,6 +137,24 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/notifications',
                 builder: (_, __) => const NotificationScreen(),
+              ),
+              GoRoute(
+                path: '/lost-and-found',
+                builder: (_, __) => const LostAndFoundScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'post',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (_, __) => const PostLostItemScreen(),
+                  ),
+                  GoRoute(
+                    path: ':itemId',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (_, state) => LostItemDetailScreen(
+                      itemId: state.pathParameters['itemId']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

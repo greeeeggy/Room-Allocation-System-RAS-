@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../models/notification_model.dart';
@@ -18,6 +19,11 @@ class NotificationScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.find_in_page_outlined),
+            tooltip: 'Lost & Found',
+            onPressed: () => context.push('/lost-and-found'),
+          ),
           // Mark all as read
           notifAsync.maybeWhen(
             data: (notifs) {
@@ -94,6 +100,12 @@ class _NotifCard extends ConsumerWidget {
         icon = Icons.event_busy_outlined;
         body = 'You got a schedule conflict with ${notif.sectionB} for Room ${notif.roomId}.';
         break;
+      case NotificationType.lostItemPosted:
+        title = 'Lost Item Found';
+        color = Colors.amber.shade700;
+        icon = Icons.find_in_page_outlined;
+        body = notif.lostItemMessage ?? 'A lost item was posted. Tap to view.';
+        break;
     }
 
     return GestureDetector(
@@ -102,6 +114,9 @@ class _NotifCard extends ConsumerWidget {
           ref
               .read(notificationServiceProvider)
               .markAsRead(notif.notifId);
+        }
+        if (notif.type == NotificationType.lostItemPosted && notif.lostItemId != null) {
+          context.push('/lost-and-found/${notif.lostItemId}');
         }
       },
       child: AnimatedContainer(

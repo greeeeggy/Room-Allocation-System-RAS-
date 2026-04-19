@@ -184,4 +184,44 @@ class NotificationService {
 
     await batch.commit();
   }
+
+  /// Write a lost_item_posted notification to all users except the poster.
+  Future<void> writeLostItemNotification({
+    required String itemId,
+    required String objectName,
+    required String posterName,
+    required String posterId,
+    required String roomFound,
+  }) async {
+    // Get all users except the poster
+    final usersSnap = await _db.collection('users').get();
+    final recipients =
+        usersSnap.docs.where((doc) => doc.id != posterId).toList();
+
+    if (recipients.isEmpty) return;
+
+    final message =
+        '$posterName found "$objectName" in Room $roomFound. Tap to view.';
+
+    final batch = _db.batch();
+    for (final userDoc in recipients) {
+      final ref = _db.collection('notifications').doc();
+      batch.set(
+        ref,
+        NotificationModel(
+          notifId: ref.id,
+          recipientId: userDoc.id,
+          type: NotificationType.lostItemPosted,
+          involvedBlockIds: [],
+          roomId: '',
+          isRead: false,
+          createdAt: DateTime.now(),
+          lostItemId: itemId,
+          lostItemMessage: message,
+        ).toFirestore(),
+      );
+    }
+
+    await batch.commit();
+  }
 }
