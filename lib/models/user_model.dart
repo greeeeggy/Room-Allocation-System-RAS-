@@ -10,6 +10,7 @@ class UserModel {
   final String? courseSection; // mayors only
   final DateTime createdAt;
   final String? photoURL;
+  final String? fcmToken;
 
   UserModel({
     required this.userId,
@@ -20,6 +21,7 @@ class UserModel {
     this.courseSection,
     required this.createdAt,
     this.photoURL,
+    this.fcmToken,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -37,6 +39,7 @@ class UserModel {
       courseSection: data['courseSection'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       photoURL: data['photoURL'],
+      fcmToken: data['fcmToken'],
     );
   }
 
@@ -49,6 +52,7 @@ class UserModel {
     'department': department,
     'courseSection': courseSection,
     'createdAt': FieldValue.serverTimestamp(),
+    'fcmToken': fcmToken,
   };
 
   bool get isMayor => role == UserRole.mayor;

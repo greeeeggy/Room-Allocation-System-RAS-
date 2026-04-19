@@ -166,7 +166,6 @@ class _LostItemDetailScreenState extends ConsumerState<LostItemDetailScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade600,
                   foregroundColor: Colors.white,
-                  minimumSize: Size.zero, // Override global infinite width
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   shape: RoundedRectangleBorder(

@@ -5,21 +5,23 @@ import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'core/router.dart';
 import 'core/utils/status_engine.dart';
+import 'services/onesignal_service.dart';
+import 'providers/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // Initialize OneSignal Push Notifications
+  await OneSignalService().init();
+
   // Run auto-release and no-show detection on startup
-  // Wrapped in try-catch: a Firestore permission error (or any other failure)
-  // must NOT crash main() before runApp() is reached — that causes a black screen.
   final statusEngine = StatusEngine();
   try {
     await statusEngine.runOnAppLoad();
   } catch (e) {
-    // StatusEngine failure is non-fatal; the app should still launch.
     debugPrint('[StatusEngine] runOnAppLoad failed: $e');
   }
-  // Keep checking every minute so rooms auto-release while the app is open.
   statusEngine.startPeriodicCheck();
   runApp(const ProviderScope(child: RoomAvailabilityApp()));
 }
@@ -29,6 +31,16 @@ class RoomAvailabilityApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Sync user to OneSignal when logged in
+    ref.listen(authStateProvider, (prev, next) {
+      final user = next.valueOrNull;
+      if (user != null) {
+        OneSignalService().login(user.userId);
+      } else {
+        OneSignalService().logout();
+      }
+    });
+
     final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'Room Availability',

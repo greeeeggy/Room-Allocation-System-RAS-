@@ -1,8 +1,50 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/notification_model.dart';
 
 class NotificationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  // ----- CONFIGURATION -----
+  // TODO: Replace with your actual OneSignal App ID and REST API Key
+  static const String _appId = "2aed1639-f07d-4261-a3d6-c706e05f0e3f";
+  static const String _restApiKey = "os_v2_app_flwrmopqpvbgdi6wy4doaxyoh4p5lsi32xxudcffqy2nfhva7rmhq6df7kxhpahdcjswus3a7ju6om3xjshkct23tyfyxllg4ttyffi";
+  // -------------------------
+
+  /// Send an HTTP request to OneSignal to push a notification.
+  Future<void> _sendOneSignalNotification({
+    required List<String> playerIds, // Can be external_ids (userIds)
+    required String title,
+    required String body,
+    bool isBroadcast = false,
+  }) async {
+    try {
+      final Map<String, dynamic> payload = {
+        'app_id': _appId,
+        'headings': {'en': title},
+        'contents': {'en': body},
+      };
+
+      if (isBroadcast) {
+        payload['included_segments'] = ['Subscribed Users'];
+      } else {
+        payload['include_external_user_ids'] = playerIds;
+      }
+
+      await http.post(
+        Uri.parse('https://onesignal.com/api/v1/notifications'),
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Authorization': 'Basic $_restApiKey',
+        },
+        body: jsonEncode(payload),
+      );
+    } catch (e) {
+      if (kDebugMode) print('Error sending OneSignal push: $e');
+    }
+  }
 
   /// Live stream of all notifications for a user, newest first.
   Stream<List<NotificationModel>> getNotificationsStream(String userId) {
@@ -81,6 +123,13 @@ class NotificationService {
       sectionA: sectionA,
       sectionB: sectionB,
     ).toFirestore());
+
+    // Push Notification
+    await _sendOneSignalNotification(
+      playerIds: [recipientId],
+      title: 'Schedule Conflict!',
+      body: 'Conflict in Room $roomId between $sectionA and $sectionB.',
+    );
   }
 
   /// Write a conflict_resolved notification.  Finds the original
@@ -137,6 +186,13 @@ class NotificationService {
     );
 
     await batch.commit();
+
+    // Push Notification
+    await _sendOneSignalNotification(
+      playerIds: [recipientId],
+      title: 'Conflict Resolved',
+      body: 'The conflict in Room $roomId has been resolved.',
+    );
   }
   /// Write static schedule conflict notifications to both involved mayors.
   Future<void> writeStaticConflictNotification({
@@ -183,6 +239,13 @@ class NotificationService {
     );
 
     await batch.commit();
+
+    // Push Notifications for both mayors
+    await _sendOneSignalNotification(
+      playerIds: [mayorIdA, mayorIdB],
+      title: 'Static Schedule Conflict',
+      body: 'A conflict exists in the master schedule for Room $roomId.',
+    );
   }
 
   /// Write a lost_item_posted notification to all users except the poster.
@@ -223,5 +286,13 @@ class NotificationService {
     }
 
     await batch.commit();
+
+    // Broadcast Push Notification
+    await _sendOneSignalNotification(
+      playerIds: [],
+      title: 'Lost Item Found',
+      body: message,
+      isBroadcast: true,
+    );
   }
 }
