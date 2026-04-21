@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,11 +48,6 @@ class DashboardScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: 'Search Rooms',
-            onPressed: () => context.go('/search'),
-          ),
-          IconButton(
             icon: const Icon(Icons.cloud_upload_outlined),
             tooltip: 'Seed Rooms',
             onPressed: () async {
@@ -62,11 +58,6 @@ class DashboardScreen extends ConsumerWidget {
                 );
               }
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            onPressed: () => context.push('/dashboard/settings'),
           ),
         ],
       ),
@@ -115,6 +106,53 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+      floatingActionButton: const _ClassyFloatingSettings(),
+    );
+  }
+}
+
+class _ClassyFloatingSettings extends StatelessWidget {
+  const _ClassyFloatingSettings();
+
+  @override
+  Widget build(BuildContext context) {
+    const double size = 52.0;
+    const Color accentColor = Color(0xFF00B894); // Premium Emerald Green
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 95, right: 8),
+      child: GestureDetector(
+        onTap: () => context.push('/dashboard/settings'),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: accentColor,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: accentColor.withOpacity(0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+            // Glossy highlight
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accentColor.withOpacity(1.0),
+                accentColor.withOpacity(0.85),
+              ],
+            ),
+          ),
+          child: const Icon(
+            Icons.settings_outlined,
+            color: Colors.white,
+            size: 26,
+          ),
+        ),
       ),
     );
   }
@@ -174,8 +212,6 @@ class _MyNextClassCardState extends ConsumerState<_MyNextClassCard> {
   @override
   void initState() {
     super.initState();
-    // Rebuild every minute so time labels and canCheckIn stay accurate
-    // without refreshing the whole dashboard screen.
     _timer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() {});
     });
@@ -419,7 +455,6 @@ class _RoomGrid extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
               ),
-              // LAB badge — top-right corner
               if (isLab)
                 Positioned(
                   top: 4,
@@ -441,7 +476,6 @@ class _RoomGrid extends StatelessWidget {
                     ),
                   ),
                 ),
-              // Board icons — bottom-left
               Positioned(
                 bottom: 4,
                 left: 4,
@@ -459,7 +493,7 @@ class _RoomGrid extends StatelessWidget {
           ),
         );
 
-        if (isOffice) return tile; // non-interactive
+        if (isOffice) return tile;
 
         return GestureDetector(
           onTap: () => context.push('/dashboard/room/${room.roomId}'),
