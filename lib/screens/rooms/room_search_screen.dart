@@ -125,7 +125,7 @@ class _RoomSearchScreenState extends ConsumerState<RoomSearchScreen> {
                   return const _EmptySearch();
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                   itemCount: filtered.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (_, i) => _RoomTile(room: filtered[i]),

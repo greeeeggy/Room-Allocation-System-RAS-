@@ -23,11 +23,14 @@ class LostAndFoundScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'lost_and_found_fab',
-        backgroundColor: AppColors.primary,
-        onPressed: () => context.push('/lost-and-found/post'),
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80),
+        child: FloatingActionButton(
+          heroTag: 'lost_and_found_fab',
+          backgroundColor: AppColors.primary,
+          onPressed: () => context.push('/lost-and-found/post'),
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
       body: itemsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -37,7 +40,7 @@ class LostAndFoundScreen extends ConsumerWidget {
             return const _EmptyState();
           }
           return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 110),
             itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (_, i) => _LostItemCard(item: items[i]),

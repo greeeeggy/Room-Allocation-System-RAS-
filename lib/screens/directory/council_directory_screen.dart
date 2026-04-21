@@ -109,8 +109,7 @@ class _CouncilDirectoryScreenState
                   });
 
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
                   itemCount: sortedKeys.length,
                   itemBuilder: (_, i) {
                     final dept = sortedKeys[i];

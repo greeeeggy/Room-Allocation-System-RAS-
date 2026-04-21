@@ -362,7 +362,7 @@ class _RoomGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
       physics: const AlwaysScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,

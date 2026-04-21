@@ -75,7 +75,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                     } catch (_) {}
                   },
                   child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                     physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -91,12 +91,15 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         ],
       ),
       floatingActionButton: isMayor
-          ? FloatingActionButton.extended(
-              onPressed: () => context.push('/schedule/add'),
-              icon: const Icon(Icons.add),
-              label: const Text('Add Block'),
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 80),
+              child: FloatingActionButton.extended(
+                onPressed: () => context.push('/schedule/add'),
+                icon: const Icon(Icons.add),
+                label: const Text('Add Block'),
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
             )
           : null,
     );
