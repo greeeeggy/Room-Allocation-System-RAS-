@@ -41,20 +41,20 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDJIHAmk9mndhfZ1DgM6_YiQb8VZFoqm8M',
-    appId: '1:1077283760082:web:f32cf58a4773d243b60a0b',
-    messagingSenderId: '1077283760082',
-    projectId: 'room-availability-app-8371b',
-    authDomain: 'room-availability-app-8371b.firebaseapp.com',
-    storageBucket: 'room-availability-app-8371b.firebasestorage.app',
+    apiKey: 'AIzaSyCKYhn6K4xFGkPQlEK-nISJdAGfRpiEueA',
+    appId: '1:50723107153:web:dfd7c30dc5fbbc98e76370',
+    messagingSenderId: '50723107153',
+    projectId: 'room-allocation-system-e6eb0',
+    authDomain: 'room-allocation-system-e6eb0.firebaseapp.com',
+    storageBucket: 'room-allocation-system-e6eb0.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDTbEctB3QeA57j5zXolLb5x_5l1gjVuXQ',
-    appId: '1:1077283760082:android:6958b363d1d5c7ffb60a0b',
-    messagingSenderId: '1077283760082',
-    projectId: 'room-availability-app-8371b',
-    storageBucket: 'room-availability-app-8371b.firebasestorage.app',
+    apiKey: 'AIzaSyDIIMMHHLJDtjVs1iTVvRBXbATQ4uudq0w',
+    appId: '1:50723107153:android:0676b4458e536266e76370',
+    messagingSenderId: '50723107153',
+    projectId: 'room-allocation-system-e6eb0',
+    storageBucket: 'room-allocation-system-e6eb0.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

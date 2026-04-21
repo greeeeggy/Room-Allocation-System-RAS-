@@ -59,7 +59,7 @@ class MayorManagementScreen extends ConsumerWidget {
                 final sorted = [...approvals]..sort((a, b) => a.courseSection.compareTo(b.courseSection));
 
                 return ListView.separated(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
                   itemCount: sorted.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (_, i) => _MayorApprovalCard(approval: sorted[i]),
@@ -71,12 +71,15 @@ class MayorManagementScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddDialog(context, ref, user.department, user.userId),
-        icon: const Icon(Icons.person_add),
-        label: const Text('Authorize Mayor'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 90),
+        child: FloatingActionButton.extended(
+          onPressed: () => _showAddDialog(context, ref, user.department, user.userId),
+          icon: const Icon(Icons.person_add),
+          label: const Text('Authorize Mayor'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
       ),
     );
   }

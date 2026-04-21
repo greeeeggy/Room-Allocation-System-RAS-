@@ -1,6 +1,6 @@
-# room_availability_app
+# Room Allocation System (RAS)
 
-A new Flutter project.
+A modern, professional room management and allocation system for the Engineering Building.
 
 ## Getting Started
 

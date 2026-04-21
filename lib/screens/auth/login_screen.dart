@@ -63,10 +63,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.domain, size: 64, color: Color(0xFF1565C0)),
+                  Center(
+                    child: Image.asset(
+                      'assets/images/RAS_logo.png',
+                      height: 100,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.domain, size: 64, color: Color(0xFF1565C0)),
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Room Availability',
+                    'Room Allocation System',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),

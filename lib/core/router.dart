@@ -15,9 +15,9 @@ import '../screens/notifications/notification_screen.dart';
 import '../screens/directory/council_directory_screen.dart';
 import '../screens/main_shell.dart';
 import '../screens/settings/settings_screen.dart';
-import 'package:room_availability_app/screens/lost_and_found/lost_and_found_screen.dart';
-import 'package:room_availability_app/screens/lost_and_found/lost_item_detail_screen.dart';
-import 'package:room_availability_app/screens/lost_and_found/post_lost_item_screen.dart';
+import 'package:room_allocation_system/screens/lost_and_found/lost_and_found_screen.dart';
+import 'package:room_allocation_system/screens/lost_and_found/lost_item_detail_screen.dart';
+import 'package:room_allocation_system/screens/lost_and_found/post_lost_item_screen.dart';
 import '../screens/mayors/mayor_management_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();

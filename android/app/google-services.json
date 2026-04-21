@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "1077283760082",
-    "project_id": "room-availability-app-8371b",
-    "storage_bucket": "room-availability-app-8371b.firebasestorage.app"
+    "project_number": "50723107153",
+    "project_id": "room-allocation-system-e6eb0",
+    "storage_bucket": "room-allocation-system-e6eb0.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1077283760082:android:6958b363d1d5c7ffb60a0b",
+        "mobilesdk_app_id": "1:50723107153:android:0676b4458e536266e76370",
         "android_client_info": {
-          "package_name": "com.yourname.room_availability_app"
+          "package_name": "com.yourname.room_allocation_system"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "1077283760082-3ocfhsdt95iom4jo814jgmvv99uu7die.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDTbEctB3QeA57j5zXolLb5x_5l1gjVuXQ"
+          "current_key": "AIzaSyDIIMMHHLJDtjVs1iTVvRBXbATQ4uudq0w"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "1077283760082-3ocfhsdt95iom4jo814jgmvv99uu7die.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

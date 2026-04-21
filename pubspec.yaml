@@ -1,5 +1,5 @@
-name: room_availability_app
-description: "Engineering Building Room Availability Monitoring System"
+name: room_allocation_system
+description: "Engineering Building Room Allocation System"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -37,6 +37,7 @@ dependencies:
   # Lost & Found
   image_picker: ^1.1.2
   uuid: ^4.5.1
+  google_fonts: ^8.0.2
 
 dev_dependencies:
   flutter_test:
@@ -45,3 +46,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/RAS_logo.png

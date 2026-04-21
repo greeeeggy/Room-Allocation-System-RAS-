@@ -89,6 +89,6 @@ class RoomFeatures {
 }
 
 class AppStrings {
-  static const String appName = 'Room Availability';
+  static const String appName = 'Room Allocation System';
   static const String currentSemester = '2025-2';
 }

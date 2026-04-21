@@ -23,11 +23,11 @@ void main() async {
     debugPrint('[StatusEngine] runOnAppLoad failed: $e');
   }
   statusEngine.startPeriodicCheck();
-  runApp(const ProviderScope(child: RoomAvailabilityApp()));
+  runApp(const ProviderScope(child: RoomAllocationSystemApp()));
 }
 
-class RoomAvailabilityApp extends ConsumerWidget {
-  const RoomAvailabilityApp({super.key});
+class RoomAllocationSystemApp extends ConsumerWidget {
+  const RoomAllocationSystemApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,7 +43,7 @@ class RoomAvailabilityApp extends ConsumerWidget {
 
     final router = ref.watch(routerProvider);
     return MaterialApp.router(
-      title: 'Room Availability',
+      title: 'Room Allocation System',
       theme: AppTheme.light,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
