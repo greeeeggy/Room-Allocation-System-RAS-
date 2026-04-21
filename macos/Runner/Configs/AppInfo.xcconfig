@@ -7,7 +7,7 @@
 // The application's name. By default this is also the title of the Flutter window.
 PRODUCT_NAME = room_allocation_system
 // ...
-PRODUCT_BUNDLE_IDENTIFIER = com.yourname.room_allocation_system
+PRODUCT_BUNDLE_IDENTIFIER = com.yourname.room-allocation-system
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.yourname. All rights reserved.
