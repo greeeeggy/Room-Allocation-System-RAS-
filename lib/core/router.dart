@@ -55,26 +55,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) =>
             MainShell(navigationShell: navigationShell),
         branches: [
-          // ── Branch 0 — Dashboard ────────────────────────────────
+          // ── Branch 0 — Room Search ──────────────────────────────
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/dashboard',
-                builder: (_, __) => const DashboardScreen(),
+                path: '/search',
+                builder: (_, __) => const RoomSearchScreen(),
                 routes: [
                   GoRoute(
                     path: 'room/:roomId',
                     builder: (_, state) => RoomDetailScreen(
                         roomId: state.pathParameters['roomId']!),
-                  ),
-                  GoRoute(
-                    path: 'checkin/:blockId',
-                    builder: (_, state) => CheckInScreen(
-                        blockId: state.pathParameters['blockId']!),
-                  ),
-                  GoRoute(
-                    path: 'settings',
-                    builder: (_, __) => const SettingsScreen(),
                   ),
                 ],
               ),
@@ -113,25 +104,33 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-
-          // ── Branch 3 — Room Search ──────────────────────────────
+          // ── Branch 2 — Dashboard ────────────────────────────────
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/search',
-                builder: (_, __) => const RoomSearchScreen(),
+                path: '/dashboard',
+                builder: (_, __) => const DashboardScreen(),
                 routes: [
                   GoRoute(
                     path: 'room/:roomId',
                     builder: (_, state) => RoomDetailScreen(
                         roomId: state.pathParameters['roomId']!),
                   ),
+                  GoRoute(
+                    path: 'checkin/:blockId',
+                    builder: (_, state) => CheckInScreen(
+                        blockId: state.pathParameters['blockId']!),
+                  ),
+                  GoRoute(
+                    path: 'settings',
+                    builder: (_, __) => const SettingsScreen(),
+                  ),
                 ],
               ),
             ],
           ),
 
-          // ── Branch 4 — Notifications ────────────────────────────
+          // ── Branch 3 — Notifications ────────────────────────────
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -159,7 +158,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // ── Branch 5 — Council Directory ────────────────────────
+          // ── Branch 4 — Council Directory ────────────────────────
           StatefulShellBranch(
             routes: [
               GoRoute(

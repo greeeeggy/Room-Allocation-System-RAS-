@@ -1,12 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
+import '../core/theme.dart';
 
-/// Bottom navigation shell wrapping the five main branches:
-/// Dashboard (0), Schedule (1), Floor Map (2), Search (3),
-/// Notifications (4), Directory (5).
 class MainShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
   const MainShell({super.key, required this.navigationShell});
@@ -14,52 +13,31 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).valueOrNull;
-
-    // Only subscribe to unread count when there is a logged-in user.
     final unreadAsync = user != null
         ? ref.watch(unreadCountProvider)
-        : const AsyncData<int>(0);
+        : const AsyncValue.data(0);
     final unreadCount = unreadAsync.valueOrNull ?? 0;
 
     return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) {
-          navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
-          );
-        },
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+      extendBody: true, // Crucial for floating nav bar
+      body: Stack(
+        children: [
+          // The main content area
+          Positioned.fill(
+            child: navigationShell,
           ),
-          NavigationDestination(
-            icon: Icon(user?.isCouncilPresident == true
-                ? Icons.people_outline
-                : Icons.calendar_today_outlined),
-            selectedIcon: Icon(user?.isCouncilPresident == true
-                ? Icons.people
-                : Icons.calendar_today),
-            label: user?.isCouncilPresident == true ? 'Mayors' : 'Schedule',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          NavigationDestination(
-            icon: _BellIcon(count: unreadCount, selected: false),
-            selectedIcon: _BellIcon(count: unreadCount, selected: true),
-            label: 'Alerts',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: 'Directory',
+          
+          // Floating Nav Bar
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
+              child: _GlassFloatingNavbar(
+                navigationShell: navigationShell,
+                unreadCount: unreadCount,
+                isCouncilPresident: user?.isCouncilPresident ?? false,
+              ),
+            ),
           ),
         ],
       ),
@@ -67,43 +45,200 @@ class MainShell extends ConsumerWidget {
   }
 }
 
-/// Bell icon with an unread badge overlay.
-class _BellIcon extends StatelessWidget {
-  final int count;
-  final bool selected;
-  const _BellIcon({required this.count, required this.selected});
+class _GlassFloatingNavbar extends StatelessWidget {
+  final StatefulNavigationShell navigationShell;
+  final int unreadCount;
+  final bool isCouncilPresident;
+
+  const _GlassFloatingNavbar({
+    required this.navigationShell,
+    required this.unreadCount,
+    required this.isCouncilPresident,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Icon(selected
-            ? Icons.notifications
-            : Icons.notifications_none_outlined),
-        if (count > 0)
-          Positioned(
-            right: -4,
-            top: -4,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalWidth = constraints.maxWidth;
+        final itemWidth = totalWidth / 5;
+        final activeIndex = navigationShell.currentIndex;
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.glassBackground.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-              constraints:
-                  const BoxConstraints(minWidth: 16, minHeight: 16),
-              child: Text(
-                count > 99 ? '99+' : '$count',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+              child: Stack(
+                children: [
+                  // Sliding Indicator
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeOutBack,
+                    left: (activeIndex * itemWidth) + (itemWidth - 60) / 2-1.5,
+                    top: 10,
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accent.withOpacity(0.4),
+                            blurRadius: 12,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  // Navbar Items
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _StylishNavbarItem(
+                        icon: Icons.travel_explore_rounded,
+                        label: 'Search',
+                        isSelected: activeIndex == 0,
+                        onTap: () => _onTap(0),
+                      ),
+                      _StylishNavbarItem(
+                        icon: isCouncilPresident ? Icons.groups_rounded : Icons.event_available_rounded,
+                        label: isCouncilPresident ? 'Mayors' : 'Schedule',
+                        isSelected: activeIndex == 1,
+                        onTap: () => _onTap(1),
+                      ),
+                      // Dashboard (Center)
+                      _StylishNavbarItem(
+                        icon: Icons.grid_view_rounded,
+                        label: 'Home',
+                        isSelected: activeIndex == 2,
+                        isCenter: true,
+                        onTap: () => _onTap(2),
+                      ),
+                      _StylishNavbarItem(
+                        icon: Icons.notifications_active_rounded,
+                        label: 'Alerts',
+                        isSelected: activeIndex == 3,
+                        unreadCount: unreadCount,
+                        onTap: () => _onTap(3),
+                      ),
+                      _StylishNavbarItem(
+                        icon: Icons.contact_mail_rounded,
+                        label: 'Directory',
+                        isSelected: activeIndex == 4,
+                        onTap: () => _onTap(4),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-      ],
+        );
+      },
+    );
+  }
+
+  void _onTap(int index) {
+    navigationShell.goBranch(
+      index,
+      initialLocation: index == navigationShell.currentIndex,
+    );
+  }
+}
+
+class _StylishNavbarItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final int unreadCount;
+  final bool isCenter;
+
+  const _StylishNavbarItem({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    this.unreadCount = 0,
+    this.isCenter = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeTextColor = Colors.white;
+    final inactiveColor = AppColors.textSecondary.withOpacity(0.7);
+
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  icon,
+                  color: isSelected ? activeTextColor : inactiveColor,
+                  size: isCenter ? 30 : 26,
+                ),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      child: Text(
+                        unreadCount > 99 ? '99+' : '$unreadCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? activeTextColor : inactiveColor,
+                fontSize: label == 'Directory' ? 8.5 : 10,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

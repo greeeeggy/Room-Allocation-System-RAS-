@@ -8,8 +8,13 @@ class AppColors {
 
   // Brand
   static const Color primary   = Color(0xFF1565C0);   // deep blue
+  static const Color accent    = Color(0xFF26A69A);   // stylish mint/teal
   static const Color surface   = Color(0xFFF5F7FA);
   static const Color card      = Color(0xFFFFFFFF);
+
+  // Glassmorphism
+  static const Color glassBackground = Color(0x33FFFFFF); // white with 20% opacity
+  static const Color glassBorder     = Color(0x33FFFFFF); // white with 20% opacity for borders
 
   // Text
   static const Color textPrimary   = Color(0xFF1A1A2E);
