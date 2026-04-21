@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -53,16 +54,12 @@ class _RoomSearchScreenState extends ConsumerState<RoomSearchScreen> {
 
   List<RoomModel> _applyFilter(List<RoomModel> rooms) {
     return rooms.where((r) {
-      // Text search
       if (_query.isNotEmpty &&
           !r.roomNumber.toLowerCase().contains(_query.toLowerCase())) {
         return false;
       }
-      // Floor filter
       if (_filter.floor != 0 && r.floor != _filter.floor) return false;
-      // Status filter
       if (_filter.status != null && r.status != _filter.status) return false;
-      // Feature filter — room must have ALL selected features
       if (_filter.features.isNotEmpty &&
           !_filter.features.every((f) => r.features.contains(f))) return false;
       return true;
@@ -74,63 +71,71 @@ class _RoomSearchScreenState extends ConsumerState<RoomSearchScreen> {
     final roomsAsync = ref.watch(allRoomsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Room Search')),
-      body: Column(
+      backgroundColor: const Color(0xFFFBFBFB),
+      body: Stack(
         children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: 'Search by room number…',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _query.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          setState(() => _query = '');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+          // Architectural Background Detail (Light)
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.accent.withOpacity(0.08),
+                    Colors.transparent,
+                  ],
                 ),
               ),
-              onChanged: (v) => setState(() => _query = v),
             ),
           ),
+          
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _MetropolisHeader(query: _query),
+                
+                _SearchDeck(
+                  controller: _searchCtrl,
+                  onChanged: (v) => setState(() => _query = v),
+                  onClear: () {
+                    _searchCtrl.clear();
+                    setState(() => _query = '');
+                  },
+                ),
 
-          // Filter chips
-          _FilterRow(
-            filter: _filter,
-            onChanged: (f) => setState(() => _filter = f),
-          ),
+                _FilterConsole(
+                  filter: _filter,
+                  onChanged: (f) => setState(() => _filter = f),
+                ),
 
-          const Divider(height: 1),
-
-          // Results
-          Expanded(
-            child: roomsAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-              data: (rooms) {
-                final filtered = _applyFilter(rooms);
-                if (filtered.isEmpty) {
-                  return const _EmptySearch();
-                }
-                return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (_, i) => _RoomTile(room: filtered[i]),
-                );
-              },
+                Expanded(
+                  child: roomsAsync.when(
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(color: AppColors.accent),
+                    ),
+                    error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: Colors.black45))),
+                    data: (rooms) {
+                      final filtered = _applyFilter(rooms);
+                      if (filtered.isEmpty) {
+                        return const _EmptySearchNoir();
+                      }
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                        itemCount: filtered.length,
+                        itemBuilder: (_, i) => _ArchitectTile(
+                          room: filtered[i],
+                          index: i,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -139,277 +144,458 @@ class _RoomSearchScreenState extends ConsumerState<RoomSearchScreen> {
   }
 }
 
-// ---------- Filter row ----------
-
-class _FilterRow extends StatelessWidget {
-  final _RoomFilter filter;
-  final ValueChanged<_RoomFilter> onChanged;
-
-  const _FilterRow({required this.filter, required this.onChanged});
+class _MetropolisHeader extends StatelessWidget {
+  final String query;
+  const _MetropolisHeader({required this.query});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 30, 24, 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Floor chips
-          _chip(
-            label: 'All Floors',
-            selected: filter.floor == 0,
-            onTap: () => onChanged(filter.copyWith(floor: 0)),
-          ),
-          for (int f = 6; f >= 1; f--)
-            _chip(
-              label: 'Floor $f',
-              selected: filter.floor == f,
-              onTap: () => onChanged(filter.copyWith(floor: f)),
+          Text(
+            'ROOM',
+            style: TextStyle(
+              color: AppColors.accent.withOpacity(0.8),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 6,
             ),
-          const VerticalDivider(width: 20),
-          // Status chips
-          _chip(
-            label: 'Available',
-            selected: filter.status == RoomStatus.available,
-            color: AppColors.available,
-            onTap: () => onChanged(filter.copyWith(
-              status: filter.status == RoomStatus.available
-                  ? null
-                  : RoomStatus.available,
-            )),
           ),
-          _chip(
-            label: 'Occupied',
-            selected: filter.status == RoomStatus.occupied,
-            color: AppColors.occupied,
-            onTap: () => onChanged(filter.copyWith(
-              status: filter.status == RoomStatus.occupied
-                  ? null
-                  : RoomStatus.occupied,
-            )),
-          ),
-          _chip(
-            label: 'Soon',
-            selected: filter.status == RoomStatus.soon,
-            color: AppColors.soon,
-            onTap: () => onChanged(filter.copyWith(
-              status:
-                  filter.status == RoomStatus.soon ? null : RoomStatus.soon,
-            )),
-          ),
-          const VerticalDivider(width: 20),
-          // Feature chips
-          for (final feat in RoomFeatures.all)
-            _chip(
-              label: _featureLabel(feat),
-              selected: filter.features.contains(feat),
-              onTap: () {
-                final updated = Set<String>.from(filter.features);
-                if (updated.contains(feat)) {
-                  updated.remove(feat);
-                } else {
-                  updated.add(feat);
-                }
-                onChanged(filter.copyWith(features: updated));
-              },
+          const SizedBox(height: 2),
+          Text(
+            query.isEmpty ? 'SEARCH' : 'FINDING...',
+            style: const TextStyle(
+              color: Color(0xFF1A1A1A),
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+              height: 1.0,
+              letterSpacing: -1,
             ),
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _chip({
-    required String label,
-    required bool selected,
-    Color? color,
-    required VoidCallback onTap,
-  }) {
-    final activeColor = color ?? AppColors.primary;
+class _SearchDeck extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  const _SearchDeck({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        height: 54, // Smaller height
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.black.withOpacity(0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: TextField(
+          controller: controller,
+          onChanged: onChanged,
+          style: const TextStyle(color: Color(0xFF1A1A1A), fontSize: 16),
+          decoration: InputDecoration(
+            hintText: 'ENTER ROOM NUMBER',
+            hintStyle: TextStyle(
+              color: Colors.black.withOpacity(0.2),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+            prefixIcon: Icon(Icons.search_rounded, color: AppColors.accent.withOpacity(0.6), size: 20),
+            suffixIcon: controller.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.black26, size: 18),
+                    onPressed: onClear,
+                  )
+                : null,
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterConsole extends StatelessWidget {
+  final _RoomFilter filter;
+  final ValueChanged<_RoomFilter> onChanged;
+
+  const _FilterConsole({required this.filter, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+          child: Text(
+            'CONSTRAINTS',
+            style: TextStyle(
+              color: Colors.black26,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 44, // Smaller height
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              _ConsoleButton(
+                label: 'ANY FLOOR',
+                selected: filter.floor == 0,
+                onTap: () => onChanged(filter.copyWith(floor: 0)),
+              ),
+              for (int f = 6; f >= 1; f--)
+                _ConsoleButton(
+                  label: '${f}F',
+                  selected: filter.floor == f,
+                  onTap: () => onChanged(filter.copyWith(floor: f)),
+                ),
+              _Divider(),
+              _ConsoleButton(
+                label: 'AVAILABLE',
+                selected: filter.status == RoomStatus.available,
+                accent: AppColors.available,
+                onTap: () => onChanged(filter.copyWith(
+                  status: filter.status == RoomStatus.available ? null : RoomStatus.available,
+                )),
+              ),
+              _ConsoleButton(
+                label: 'OCCUPIED',
+                selected: filter.status == RoomStatus.occupied,
+                accent: AppColors.occupied,
+                onTap: () => onChanged(filter.copyWith(
+                  status: filter.status == RoomStatus.occupied ? null : RoomStatus.occupied,
+                )),
+              ),
+              _Divider(),
+              for (final feat in RoomFeatures.all)
+                _ConsoleButton(
+                  label: feat.toUpperCase(),
+                  selected: filter.features.contains(feat),
+                  onTap: () {
+                    final updated = Set<String>.from(filter.features);
+                    updated.contains(feat) ? updated.remove(feat) : updated.add(feat);
+                    onChanged(filter.copyWith(features: updated));
+                  },
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
+}
+
+class _ConsoleButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Color? accent;
+  final VoidCallback onTap;
+
+  const _ConsoleButton({
+    required this.label,
+    required this.selected,
+    this.accent,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = accent ?? AppColors.accent;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 130),
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 6, bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
           color: selected ? activeColor : Colors.white,
-          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: selected ? activeColor : Colors.grey.shade300),
+            color: selected ? activeColor : Colors.black.withOpacity(0.06),
+            width: 1,
+          ),
+          boxShadow: selected ? [
+            BoxShadow(
+              color: activeColor.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ] : null,
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? Colors.white : Colors.grey.shade700,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
+              color: selected ? Colors.white : Colors.black45,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
             ),
           ),
         ),
       ),
     );
   }
+}
 
-  String _featureLabel(String f) {
-    const m = {
-      'tv': 'TV',
-      'whiteboard': 'Whiteboard',
-      'blackboard': 'Blackboard',
-      'aircon': 'Aircon',
-      'projector': 'Projector',
-    };
-    return m[f] ?? f;
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 16,
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      color: Colors.black.withOpacity(0.05),
+    );
   }
 }
 
-// ---------- Room tile ----------
-
-class _RoomTile extends StatelessWidget {
+class _ArchitectTile extends StatelessWidget {
   final RoomModel room;
-  const _RoomTile({required this.room});
+  final int index;
 
-  Color _statusColor(RoomStatus s) {
-    switch (s) {
-      case RoomStatus.occupied:
-        return AppColors.occupied;
-      case RoomStatus.soon:
-        return AppColors.soon;
-      case RoomStatus.available:
-      case RoomStatus.noClass:
-        return AppColors.available;
-    }
-  }
-
-  String _statusLabel(RoomStatus s) {
-    switch (s) {
-      case RoomStatus.occupied:
-        return 'Occupied';
-      case RoomStatus.soon:
-        return 'Soon';
-      case RoomStatus.available:
-        return 'Available';
-      case RoomStatus.noClass:
-        return 'No Class';
-    }
-  }
+  const _ArchitectTile({required this.room, required this.index});
 
   @override
   Widget build(BuildContext context) {
-    final isOffice = room.isOffice;
-    final badgeColor = isOffice ? Colors.grey.shade500 : _statusColor(room.status);
-    final badgeLabel = isOffice ? 'Office' : _statusLabel(room.status);
+    final statusColor = _getStatusColor(room.status);
 
-    final content = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          // Status/type dot
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: badgeColor,
-              shape: BoxShape.circle,
-            ),
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 400 + (index * 80).clamp(0, 500)),
+      tween: Tween(begin: 0.0, end: 1.0),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 15 * (1 - value)),
+            child: child,
           ),
-          const SizedBox(width: 14),
-          // Room info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Room ${room.roomNumber}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15)),
-                Text('Floor ${room.floor}',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 12)),
-              ],
-            ),
+        );
+      },
+      child: GestureDetector(
+        onTap: () => context.push('/search/room/${room.roomId}'),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          height: 95, // Smaller height
+          child: Stack(
+            children: [
+              // Main Card Body
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F1F1),
+                    border: Border.all(color: Colors.black.withOpacity(0.08)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      )
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+                  child: Row(
+                    children: [
+                      // Room numeric dominant element
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            room.roomNumber,
+                            style: const TextStyle(
+                              color: Color(0xFF1A1A1A),
+                              fontSize: 28, // Smaller proportional font
+                              fontWeight: FontWeight.w900,
+                              height: 1,
+                              letterSpacing: -1,
+                            ),
+                          ),
+                          Text(
+                            'FLOOR ${room.floor}',
+                            style: TextStyle(
+                              color: AppColors.accent.withOpacity(0.6),
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      // Features summary
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (room.isLab)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: _StatusBadge(label: 'LAB', color: AppColors.accent),
+                                ),
+                              _StatusBadge(
+                                label: room.isOffice ? 'OFFICE' : _getStatusLabel(room.status), 
+                                color: room.isOffice ? Colors.grey.shade500 : statusColor,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: room.features.take(3).map((f) => Padding(
+                              padding: const EdgeInsets.only(left: 6),
+                              child: Icon(_getFeatureIcon(f), color: Colors.black12, size: 14),
+                            )).toList(),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Accent L-shape detail
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Container(
+                  width: 24,
+                  height: 2,
+                  color: room.isLab ? AppColors.accent.withOpacity(0.4) : statusColor.withOpacity(0.4),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Container(
+                  width: 2,
+                  height: 24,
+                  color: room.isLab ? AppColors.accent.withOpacity(0.4) : statusColor.withOpacity(0.4),
+                ),
+              ),
+            ],
           ),
-          // Features icons
-          Row(
-            children: room.features
-                .take(3)
-                .map((f) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Icon(_featureIcon(f),
-                          size: 16, color: Colors.grey),
-                    ))
-                .toList(),
-          ),
-          const SizedBox(width: 8),
-          // Status/office badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: badgeColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              badgeLabel,
-              style: TextStyle(
-                  color: badgeColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600),
-            ),
-          ),
-          const SizedBox(width: 4),
-          if (!isOffice)
-            const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
-        ],
+        ),
       ),
     );
-
-    return Card(
-      child: isOffice
-          ? content
-          : InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => context.push('/search/room/${room.roomId}'),
-              child: content,
-            ),
-    );
   }
 
-  IconData _featureIcon(String f) {
+  Color _getStatusColor(RoomStatus s) {
+    switch (s) {
+      case RoomStatus.occupied: return AppColors.occupied;
+      case RoomStatus.soon: return AppColors.soon;
+      default: return AppColors.available;
+    }
+  }
+
+  String _getStatusLabel(RoomStatus s) {
+    switch (s) {
+      case RoomStatus.occupied: return 'OCCUPIED';
+      case RoomStatus.soon: return 'SOON';
+      case RoomStatus.noClass: return 'NO CLASS';
+      default: return 'AVAILABLE';
+    }
+  }
+
+  IconData _getFeatureIcon(String f) {
     switch (f) {
-      case 'tv':
-        return Icons.tv;
-      case 'blackboard':
-        return Icons.square;
-      case 'whiteboard':
-        return Icons.square_outlined;
-      case 'aircon':
-        return Icons.ac_unit;
-      case 'projector':
-        return Icons.slideshow_outlined;
-      case 'computer':
-        return Icons.computer;
-      default:
-        return Icons.check;
+      case 'tv': return Icons.tv_rounded;
+      case 'aircon': return Icons.ac_unit_rounded;
+      case 'projector': return Icons.videocam_rounded;
+      case 'whiteboard': return Icons.square_outlined;
+      case 'blackboard': return Icons.square;
+      default: return Icons.check_circle_outline_rounded;
     }
   }
 }
 
-class _EmptySearch extends StatelessWidget {
-  const _EmptySearch();
+class _StatusBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _StatusBadge({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptySearchNoir extends StatelessWidget {
+  const _EmptySearchNoir();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off_outlined, size: 56, color: Colors.grey),
-          SizedBox(height: 12),
-          Text('No rooms match your filters.',
-              style: TextStyle(color: Colors.grey, fontSize: 16)),
-          SizedBox(height: 4),
-          Text('Try adjusting the filters above.',
-              style: TextStyle(color: Colors.grey, fontSize: 12)),
+          Icon(Icons.architecture_rounded, size: 80, color: Colors.white.withOpacity(0.05)),
+          const SizedBox(height: 20),
+          Text(
+            'NULL_RESULTS',
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.2),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 6,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'ADJUST PARAMETERS',
+            style: TextStyle(
+              color: Colors.white10,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2,
+            ),
+          ),
         ],
       ),
     );
