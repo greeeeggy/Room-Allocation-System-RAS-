@@ -19,7 +19,8 @@ class MainShell extends ConsumerWidget {
     final unreadCount = unreadAsync.valueOrNull ?? 0;
 
     return Scaffold(
-      extendBody: true, // Crucial for floating nav bar
+      extendBody: true,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // The main content area
@@ -64,28 +65,34 @@ class _GlassFloatingNavbar extends StatelessWidget {
         final itemWidth = totalWidth / 5;
         final activeIndex = navigationShell.currentIndex;
 
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(32),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.glassBackground.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(34),
+            boxShadow: [
+              // Subtle Elevation Shadow
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
-              child: Stack(
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.glassBackground.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(32),
+                  // The "Sharp Outline"
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                ),
+                child: Stack(
                 children: [
                   // Sliding Indicator
                   AnimatedPositioned(
@@ -153,10 +160,11 @@ class _GlassFloatingNavbar extends StatelessWidget {
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   void _onTap(int index) {
     navigationShell.goBranch(

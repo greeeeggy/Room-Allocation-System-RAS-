@@ -64,6 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'room/:roomId',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, state) => RoomDetailScreen(
                         roomId: state.pathParameters['roomId']!),
                   ),
@@ -87,15 +88,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'add',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, __) => const AddBlockScreen(),
                   ),
                   GoRoute(
                     path: 'edit/:blockId',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, state) => EditBlockScreen(
                         blockId: state.pathParameters['blockId']!),
                   ),
                   GoRoute(
                     path: 'checkin/:blockId',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, state) => CheckInScreen(
                         blockId: state.pathParameters['blockId']!),
                   ),
@@ -113,16 +117,19 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'room/:roomId',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, state) => RoomDetailScreen(
                         roomId: state.pathParameters['roomId']!),
                   ),
                   GoRoute(
                     path: 'checkin/:blockId',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, state) => CheckInScreen(
                         blockId: state.pathParameters['blockId']!),
                   ),
                   GoRoute(
                     path: 'settings',
+                    parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, __) => const SettingsScreen(),
                   ),
                 ],
