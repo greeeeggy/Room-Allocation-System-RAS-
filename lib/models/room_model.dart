@@ -8,6 +8,9 @@ class RoomModel {
   final List<String> features;
   final RoomStatus status;
   final String? currentOccupantBlockId;
+  final RoomType roomType;
+  // For labs: the specific lab name (e.g. "IE Laboratory", "Computer Laboratory")
+  final String? labType;
 
   // Grid position for isometric map (Phase 3)
   final int col;
@@ -20,9 +23,14 @@ class RoomModel {
     required this.features,
     required this.status,
     this.currentOccupantBlockId,
+    this.roomType = RoomType.classroom,
+    this.labType,
     this.col = 0,
     this.row = 0,
   });
+
+  bool get isOffice => roomType == RoomType.office;
+  bool get isLab => roomType == RoomType.laboratory;
 
   factory RoomModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -33,6 +41,8 @@ class RoomModel {
       features: List<String>.from(data['features'] ?? []),
       status: _parseStatus(data['status']),
       currentOccupantBlockId: data['currentOccupantBlockId'],
+      roomType: _parseRoomType(data['roomType']),
+      labType: data['labType'],
       col: data['col'] ?? 0,
       row: data['row'] ?? 0,
     );
@@ -46,6 +56,15 @@ class RoomModel {
     }
   }
 
+  static RoomType _parseRoomType(String? value) {
+    switch (value) {
+      case 'laboratory': return RoomType.laboratory;
+      case 'office':     return RoomType.office;
+      case 'unknown':    return RoomType.unknown;
+      default:           return RoomType.classroom;
+    }
+  }
+
   Map<String, dynamic> toFirestore() => {
     'roomId': roomId,
     'roomNumber': roomNumber,
@@ -53,6 +72,8 @@ class RoomModel {
     'features': features,
     'status': status.name,
     'currentOccupantBlockId': currentOccupantBlockId,
+    'roomType': roomType.name,
+    'labType': labType,
     'col': col,
     'row': row,
   };

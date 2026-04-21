@@ -96,6 +96,14 @@ class _RoomDetailBody extends ConsumerWidget {
                 Text('Floor ${room.floor}',
                     style: const TextStyle(
                         color: AppColors.textSecondary, fontSize: 14)),
+                if (room.isLab && room.labType != null) ...[
+                  const SizedBox(height: 4),
+                  Text(room.labType!,
+                      style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                          fontStyle: FontStyle.italic)),
+                ],
               ],
             ),
           ),
@@ -239,13 +247,16 @@ class _RoomDetailBody extends ConsumerWidget {
     switch (f) {
       case 'tv':
         return Icons.tv;
-      case 'whiteboard':
       case 'blackboard':
+        return Icons.square;
+      case 'whiteboard':
         return Icons.square_outlined;
       case 'aircon':
         return Icons.ac_unit;
       case 'projector':
         return Icons.slideshow_outlined;
+      case 'computer':
+        return Icons.computer;
       default:
         return Icons.check;
     }

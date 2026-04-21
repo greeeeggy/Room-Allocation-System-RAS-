@@ -68,12 +68,15 @@ class Departments {
 }
 
 
+enum RoomType { classroom, laboratory, office, unknown }
+
 class RoomFeatures {
   static const String tv = 'tv';
   static const String whiteboard = 'whiteboard';
   static const String blackboard = 'blackboard';
   static const String aircon = 'aircon';
   static const String projector = 'projector';
+  static const String computer = 'computer';
 
   static const List<String> all = [
     tv,
@@ -81,6 +84,7 @@ class RoomFeatures {
     blackboard,
     aircon,
     projector,
+    computer,
   ];
 }
 

@@ -297,71 +297,80 @@ class _RoomTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/search/room/${room.roomId}'),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              // Status dot
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: _statusColor(room.status),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 14),
-              // Room info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Room ${room.roomNumber}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 15)),
-                    Text('Floor ${room.floor}',
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12)),
-                  ],
-                ),
-              ),
-              // Features icons
-              Row(
-                children: room.features
-                    .take(3)
-                    .map((f) => Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: Icon(_featureIcon(f),
-                              size: 16, color: Colors.grey),
-                        ))
-                    .toList(),
-              ),
-              const SizedBox(width: 8),
-              // Status badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: _statusColor(room.status).withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  _statusLabel(room.status),
-                  style: TextStyle(
-                      color: _statusColor(room.status),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600),
-                ),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
-            ],
+    final isOffice = room.isOffice;
+    final badgeColor = isOffice ? Colors.grey.shade500 : _statusColor(room.status);
+    final badgeLabel = isOffice ? 'Office' : _statusLabel(room.status);
+
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          // Status/type dot
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: badgeColor,
+              shape: BoxShape.circle,
+            ),
           ),
-        ),
+          const SizedBox(width: 14),
+          // Room info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Room ${room.roomNumber}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 15)),
+                Text('Floor ${room.floor}',
+                    style: const TextStyle(
+                        color: AppColors.textSecondary, fontSize: 12)),
+              ],
+            ),
+          ),
+          // Features icons
+          Row(
+            children: room.features
+                .take(3)
+                .map((f) => Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(_featureIcon(f),
+                          size: 16, color: Colors.grey),
+                    ))
+                .toList(),
+          ),
+          const SizedBox(width: 8),
+          // Status/office badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: badgeColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              badgeLabel,
+              style: TextStyle(
+                  color: badgeColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 4),
+          if (!isOffice)
+            const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+        ],
       ),
+    );
+
+    return Card(
+      child: isOffice
+          ? content
+          : InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => context.push('/search/room/${room.roomId}'),
+              child: content,
+            ),
     );
   }
 
@@ -369,13 +378,16 @@ class _RoomTile extends StatelessWidget {
     switch (f) {
       case 'tv':
         return Icons.tv;
-      case 'whiteboard':
       case 'blackboard':
+        return Icons.square;
+      case 'whiteboard':
         return Icons.square_outlined;
       case 'aircon':
         return Icons.ac_unit;
       case 'projector':
         return Icons.slideshow_outlined;
+      case 'computer':
+        return Icons.computer;
       default:
         return Icons.check;
     }

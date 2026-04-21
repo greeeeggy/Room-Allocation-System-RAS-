@@ -346,8 +346,9 @@ class _RoomGrid extends StatelessWidget {
   final List<RoomModel> rooms;
   const _RoomGrid({required this.rooms});
 
-  Color _statusColor(RoomStatus status) {
-    switch (status) {
+  Color _statusColor(RoomModel room) {
+    if (room.isOffice) return Colors.grey.shade400;
+    switch (room.status) {
       case RoomStatus.occupied:
         return AppColors.occupied;
       case RoomStatus.soon:
@@ -372,31 +373,78 @@ class _RoomGrid extends StatelessWidget {
       itemCount: rooms.length,
       itemBuilder: (_, i) {
         final room = rooms[i];
-        return GestureDetector(
-          onTap: () => context.push('/dashboard/room/${room.roomId}'),
-          child: Container(
-            decoration: BoxDecoration(
-              color: _statusColor(room.status),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                )
-              ],
-            ),
-            child: Center(
-              child: Text(
-                room.roomNumber,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+        final isOffice = room.isOffice;
+        final isLab = room.isLab;
+        final tile = Container(
+          decoration: BoxDecoration(
+            color: _statusColor(room),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              )
+            ],
+          ),
+          child: Stack(
+            children: [
+              Center(
+                child: Text(
+                  room.roomNumber,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
-            ),
+              // LAB badge — top-right corner
+              if (isLab)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'LAB',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 7,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              // Board icons — bottom-left
+              Positioned(
+                bottom: 4,
+                left: 4,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (room.features.contains(RoomFeatures.blackboard))
+                      const Icon(Icons.square, size: 8, color: Colors.white),
+                    if (room.features.contains(RoomFeatures.whiteboard))
+                      const Icon(Icons.square_outlined, size: 8, color: Colors.white),
+                  ],
+                ),
+              ),
+            ],
           ),
+        );
+
+        if (isOffice) return tile; // non-interactive
+
+        return GestureDetector(
+          onTap: () => context.push('/dashboard/room/${room.roomId}'),
+          child: tile,
         );
       },
     );
