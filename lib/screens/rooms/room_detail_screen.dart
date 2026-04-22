@@ -113,24 +113,23 @@ class _RoomDetailBody extends ConsumerWidget {
         const SizedBox(height: 24),
 
         // Features
-        const Text('Features',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-        const SizedBox(height: 8),
-        room.features.isEmpty
-            ? const Text('No listed features.',
-                style: TextStyle(color: AppColors.textSecondary))
-            : Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: room.features
-                    .map((f) => Chip(
-                          label: Text(_featureLabel(f)),
-                          avatar: Icon(_featureIcon(f), size: 16),
-                          backgroundColor: Colors.grey.shade100,
-                        ))
-                    .toList(),
-              ),
-        const SizedBox(height: 24),
+        if (room.features.isNotEmpty) ...[
+          const Text('Features',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: room.features
+                .map((f) => Chip(
+                      label: Text(_featureLabel(f)),
+                      avatar: Icon(_featureIcon(f), size: 16),
+                      backgroundColor: Colors.grey.shade100,
+                    ))
+                .toList(),
+          ),
+          const SizedBox(height: 24),
+        ],
 
         // Today's schedule
         const Text("Today's Schedule",
