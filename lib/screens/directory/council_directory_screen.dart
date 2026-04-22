@@ -1,19 +1,18 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/council_service.dart';
 
 // Provider
-final _councilServiceProvider =
-    Provider<CouncilService>((ref) => CouncilService());
+final _councilServiceProvider = Provider<CouncilService>((ref) => CouncilService());
 
 final _usersProvider = StreamProvider<List<UserModel>>((ref) {
-  return ref
-      .watch(_councilServiceProvider)
-      .getUsersStream()
-      .handleError((error) {
+  return ref.watch(_councilServiceProvider).getUsersStream().handleError((error) {
     debugPrint('CouncilDirectory Error: $error');
     throw error;
   });
@@ -23,25 +22,21 @@ class CouncilDirectoryScreen extends ConsumerStatefulWidget {
   const CouncilDirectoryScreen({super.key});
 
   @override
-  ConsumerState<CouncilDirectoryScreen> createState() =>
-      _CouncilDirectoryScreenState();
+  ConsumerState<CouncilDirectoryScreen> createState() => _CouncilDirectoryScreenState();
 }
 
-class _CouncilDirectoryScreenState
-    extends ConsumerState<CouncilDirectoryScreen> {
+class _CouncilDirectoryScreenState extends ConsumerState<CouncilDirectoryScreen> {
   String _selectedDept = 'All';
 
   static const _deptFilters = [
     'All',
-    ...[
-      'BSIE',
-      'BSASE',
-      'BSEE',
-      'BSECE',
-      'BSME',
-      'BSCpE',
-      'BSCE',
-    ],
+    'BSIE',
+    'BSASE',
+    'BSEE',
+    'BSECE',
+    'BSME',
+    'BSCpE',
+    'BSCE',
   ];
 
   @override
@@ -49,88 +44,154 @@ class _CouncilDirectoryScreenState
     final usersAsync = ref.watch(_usersProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Council Directory'),
-      ),
-      body: Column(
+      backgroundColor: const Color(0xFFFBFBFB),
+      body: Stack(
         children: [
-          // ── Department filter tabs ──────────────────────────────────
-          _DeptFilterBar(
-            selected: _selectedDept,
-            depts: _deptFilters,
-            onSelect: (d) => setState(() => _selectedDept = d),
+          // Architectural Background Details
+          Positioned(
+            top: -80,
+            left: -80,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.accent.withOpacity(0.08),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
           ),
-          const Divider(height: 1),
+          
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _MetropolisHeader(),
+                
+                // Filter Console
+                _MetropolisFilterConsole(
+                  selected: _selectedDept,
+                  options: _deptFilters,
+                  onSelect: (d) => setState(() => _selectedDept = d),
+                ),
 
-          // ── User list ───────────────────────────────────────────────
-          Expanded(
-            child: usersAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (e, _) {
-                final errorStr = e.toString();
-                if (errorStr.contains('permission-denied') ||
-                    errorStr.contains('PERMISSION_DENIED')) {
-                  return const _ErrorState(
-                    title: 'Access Denied',
-                    message:
-                        'You do not have permission to view the directory. Please check your system configuration.',
-                    icon: Icons.lock_person_outlined,
-                  );
-                }
-                return Center(child: Text('Error: $e'));
-              },
-              data: (users) {
-                final filtered = _selectedDept == 'All'
-                    ? users
-                    : users
-                        .where((u) => Departments.getAbbreviation(u.department) == 
-                                     Departments.getAbbreviation(_selectedDept))
-                        .toList();
-
-                if (filtered.isEmpty) {
-                  return _EmptyState(dept: _selectedDept);
-                }
-
-                // Group by department
-                final grouped = <String, List<UserModel>>{};
-                for (final u in filtered) {
-                  grouped.putIfAbsent(u.department, () => []).add(u);
-                }
-
-                // Sort departments
-                final sortedKeys = grouped.keys.toList()
-                  ..sort((a, b) {
-                    final abbs = Departments.allAbbreviations;
-                    final ai = abbs.indexOf(a);
-                    final bi = abbs.indexOf(b);
-                    return (ai == -1 ? 999 : ai)
-                        .compareTo(bi == -1 ? 999 : bi);
-                  });
-
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 110),
-                  itemCount: sortedKeys.length,
-                  itemBuilder: (_, i) {
-                    final dept = sortedKeys[i];
-                    final deptUsers = grouped[dept]!;
-
-                    // Sort within department: Presidents first, then Mayors by section
-                    deptUsers.sort((a, b) {
-                      if (a.isCouncilPresident && b.isMayor) return -1;
-                      if (a.isMayor && b.isCouncilPresident) return 1;
-                      if (a.isMayor && b.isMayor) {
-                        return (a.courseSection ?? '')
-                            .compareTo(b.courseSection ?? '');
+                Expanded(
+                  child: usersAsync.when(
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                    error: (e, _) {
+                      if (e.toString().contains('permission-denied')) {
+                        return const _ArchitectErrorState(
+                          title: 'ACCESS RESTRICTED',
+                          message: 'COUNCIL CLEARANCE REQUIRED FOR DIRECTORY ACCESS.',
+                          icon: Icons.lock_outline_rounded,
+                        );
                       }
-                      return a.name.compareTo(b.name);
-                    });
+                      return Center(child: Text('Error: $e'));
+                    },
+                    data: (users) {
+                      final filtered = _selectedDept == 'All'
+                          ? users
+                          : users.where((u) => 
+                              Departments.getAbbreviation(u.department) == 
+                              Departments.getAbbreviation(_selectedDept)).toList();
 
-                    return _DepartmentSection(
-                        dept: dept, users: deptUsers);
-                  },
-                );
-              },
+                      if (filtered.isEmpty) {
+                        return _ArchitectEmptyState(dept: _selectedDept);
+                      }
+
+                      // Group by department
+                      final grouped = <String, List<UserModel>>{};
+                      for (final u in filtered) {
+                        grouped.putIfAbsent(u.department, () => []).add(u);
+                      }
+
+                      final sortedKeys = grouped.keys.toList()
+                        ..sort((a, b) {
+                          final abbs = Departments.allAbbreviations;
+                          final ai = abbs.indexOf(a);
+                          final bi = abbs.indexOf(b);
+                          return (ai == -1 ? 999 : ai).compareTo(bi == -1 ? 999 : bi);
+                        });
+
+                      return RefreshIndicator(
+                        onRefresh: () async => ref.refresh(_usersProvider),
+                        color: AppColors.primary,
+                        child: CustomScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
+                            for (final dept in sortedKeys) ...[
+                              _DepartmentSliverHeader(dept: dept),
+                              SliverPadding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                sliver: SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      final deptUsers = grouped[dept]!;
+                                      // Sort within department
+                                      deptUsers.sort((a, b) {
+                                        if (a.isCouncilPresident && b.isMayor) return -1;
+                                        if (a.isMayor && b.isCouncilPresident) return 1;
+                                        if (a.isMayor && b.isMayor) {
+                                          return (a.courseSection ?? '').compareTo(b.courseSection ?? '');
+                                        }
+                                        return a.name.compareTo(b.name);
+                                      });
+                                      return _ArchitectUserTile(user: deptUsers[index], index: index);
+                                    },
+                                    childCount: grouped[dept]!.length,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        ],
+      ),
+    );
+  }
+}
+
+class _MetropolisHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'COUNCIL',
+            style: GoogleFonts.outfit(
+              color: AppColors.accent.withOpacity(0.8),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 6,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'DIRECTORY',
+            style: GoogleFonts.outfit(
+              color: const Color(0xFF1A1A1A),
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              height: 1.0,
+              letterSpacing: -1,
             ),
           ),
         ],
@@ -139,12 +200,16 @@ class _CouncilDirectoryScreenState
   }
 }
 
-// ---------- Department section ----------
+class _MetropolisFilterConsole extends StatelessWidget {
+  final String selected;
+  final List<String> options;
+  final ValueChanged<String> onSelect;
 
-class _DepartmentSection extends StatelessWidget {
-  final String dept;
-  final List<UserModel> users;
-  const _DepartmentSection({required this.dept, required this.users});
+  const _MetropolisFilterConsole({
+    required this.selected,
+    required this.options,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -152,36 +217,114 @@ class _DepartmentSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
           child: Text(
-            Departments.getAbbreviation(dept),
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-              letterSpacing: 0.3,
+            'CATEGORIES',
+            style: GoogleFonts.outfit(
+              color: Colors.black26,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
             ),
           ),
         ),
-        Card(
-          margin: EdgeInsets.zero,
-          child: Column(
-            children: users
-                .map((u) => _UserTile(user: u))
-                .toList(),
+        SizedBox(
+          height: 44,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: options.length,
+            itemBuilder: (context, i) {
+              final opt = options[i];
+              final isSel = selected == opt;
+              return GestureDetector(
+                onTap: () => onSelect(opt),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.only(right: 6, bottom: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: isSel ? AppColors.accent : Colors.white,
+                    border: Border.all(
+                      color: isSel ? AppColors.accent : Colors.black.withOpacity(0.06),
+                      width: 1,
+                    ),
+                    boxShadow: isSel ? [
+                      BoxShadow(
+                        color: AppColors.accent.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      )
+                    ] : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      opt.toUpperCase(),
+                      style: GoogleFonts.outfit(
+                        color: isSel ? Colors.white : Colors.black45,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 10),
       ],
     );
   }
 }
 
-// ---------- User tile ----------
+class _DepartmentSliverHeader extends StatelessWidget {
+  final String dept;
+  const _DepartmentSliverHeader({required this.dept});
 
-class _UserTile extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        child: Row(
+          children: [
+            Text(
+              Departments.getAbbreviation(dept).toUpperCase(),
+              style: GoogleFonts.outfit(
+                color: AppColors.primary,
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Container(
+                height: 1,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withOpacity(0.2),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ArchitectUserTile extends StatelessWidget {
   final UserModel user;
-  const _UserTile({required this.user});
+  final int index;
+
+  const _ArchitectUserTile({required this.user, required this.index});
 
   @override
   Widget build(BuildContext context) {
@@ -193,162 +336,110 @@ class _UserTile extends StatelessWidget {
         .toUpperCase();
 
     final String position = user.isCouncilPresident
-        ? 'Council President'
-        : 'Mayor - ${user.courseSection ?? "No Section"}';
+        ? 'PRESIDENT'
+        : 'MAYOR · ${user.courseSection ?? "N/A"}';
 
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: AppColors.primary.withOpacity(0.15),
-        child: Text(
-          initials,
-          style: const TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
-              fontSize: 14),
-        ),
-      ),
-      title: Text(user.name,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-      subtitle: Text(position,
-          style: const TextStyle(
-              color: AppColors.textSecondary, fontSize: 12)),
-      trailing: user.isCouncilPresident
-          ? const Icon(Icons.verified_user, size: 18, color: AppColors.primary)
-          : null,
-      dense: true,
-    );
-  }
-}
-
-// ---------- Dept filter bar ----------
-
-class _DeptFilterBar extends StatelessWidget {
-  final String selected;
-  final List<String> depts;
-  final ValueChanged<String> onSelect;
-  const _DeptFilterBar(
-      {required this.selected,
-      required this.depts,
-      required this.onSelect});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        children: depts
-            .map((d) => _FilterChip(
-                  label: d,
-                  selected: selected == d,
-                  onTap: () => onSelect(d),
-                ))
-            .toList(),
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _FilterChip(
-      {required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: selected ? AppColors.primary : Colors.grey.shade300),
-        ),
-        child: Center(
-          child: Text(label,
-              style: TextStyle(
-                color: selected ? Colors.white : Colors.grey.shade700,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              )),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------- Empty state ----------
-
-class _EmptyState extends StatelessWidget {
-  final String dept;
-  const _EmptyState({required this.dept});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.people_outline, size: 56, color: Colors.grey.shade400),
-          const SizedBox(height: 12),
-          Text(
-            dept == 'All'
-                ? 'No users registered yet.'
-                : 'No registered users for $dept.',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 15),
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 400 + (index * 50).clamp(0, 500)),
+      tween: Tween(begin: 0.0, end: 1.0),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(10 * (1 - value), 0),
+            child: child,
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------- Error state ----------
-
-class _ErrorState extends StatelessWidget {
-  final String title;
-  final String message;
-  final IconData icon;
-
-  const _ErrorState({
-    required this.title,
-    required this.message,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        height: 70,
+        child: Stack(
           children: [
-            Icon(icon, size: 64, color: Colors.red.shade300),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.black.withOpacity(0.06)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  // Badge-style Avatar
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.05),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+                    ),
+                    child: Center(
+                      child: Text(
+                        initials,
+                        style: GoogleFonts.outfit(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.name.toUpperCase(),
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            color: const Color(0xFF1A1A1A),
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        Text(
+                          position,
+                          style: GoogleFonts.outfit(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black26,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (user.isCouncilPresident)
+                    const Icon(Icons.verified_rounded, color: AppColors.primary, size: 18),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-                height: 1.4,
+            // L-shape Detail
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: 12,
+                height: 2,
+                color: AppColors.accent.withOpacity(0.3),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: 2,
+                height: 12,
+                color: AppColors.accent.withOpacity(0.3),
               ),
             ),
           ],
@@ -357,3 +448,88 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
+
+class _ArchitectEmptyState extends StatelessWidget {
+  final String dept;
+  const _ArchitectEmptyState({required this.dept});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.person_off_outlined, size: 80, color: Colors.black.withOpacity(0.04)),
+          const SizedBox(height: 20),
+          Text(
+            'INDEX EMPTY',
+            style: GoogleFonts.outfit(
+              color: Colors.black.withOpacity(0.12),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'NO REGISTRATIONS FOR $dept'.toUpperCase(),
+            style: GoogleFonts.outfit(
+              color: Colors.black.withOpacity(0.08),
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArchitectErrorState extends StatelessWidget {
+  final String title;
+  final String message;
+  final IconData icon;
+
+  const _ArchitectErrorState({
+    required this.title,
+    required this.message,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(40.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 64, color: AppColors.primary.withOpacity(0.2)),
+          const SizedBox(height: 24),
+          Text(
+            title,
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primary,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.black26,
+              height: 1.5,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

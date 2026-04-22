@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../models/room_model.dart';
@@ -151,13 +152,13 @@ class _MetropolisHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 30, 24, 15),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'ROOM',
-            style: TextStyle(
+            style: GoogleFonts.outfit(
               color: AppColors.accent.withOpacity(0.8),
               fontSize: 12,
               fontWeight: FontWeight.w900,
@@ -166,10 +167,10 @@ class _MetropolisHeader extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            query.isEmpty ? 'SEARCH' : 'FINDING...',
-            style: const TextStyle(
-              color: Color(0xFF1A1A1A),
-              fontSize: 36,
+            'SEARCH',
+            style: GoogleFonts.outfit(
+              color: const Color(0xFF1A1A1A),
+              fontSize: 32,
               fontWeight: FontWeight.w900,
               height: 1.0,
               letterSpacing: -1,

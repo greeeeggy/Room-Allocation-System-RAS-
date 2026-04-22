@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../core/utils/time_utils.dart';
@@ -143,26 +144,26 @@ class _ScheduleHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(24, 30, 24, 15),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'MY',
-            style: TextStyle(
-              color: AppColors.primary, // Using direct primary instead of opacity for cleaner look
+            style: GoogleFonts.outfit(
+              color: AppColors.primary, 
               fontSize: 12,
               fontWeight: FontWeight.w900,
               letterSpacing: 6,
             ),
           ),
-          SizedBox(height: 2),
+          const SizedBox(height: 2),
           Text(
             'SCHEDULE',
-            style: TextStyle(
-              color: Color(0xFF1A1A1A),
-              fontSize: 36,
+            style: GoogleFonts.outfit(
+              color: const Color(0xFF1A1A1A),
+              fontSize: 32,
               fontWeight: FontWeight.w900,
               height: 1.0,
               letterSpacing: -1,
