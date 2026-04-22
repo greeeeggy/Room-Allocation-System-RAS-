@@ -31,61 +31,81 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     final isMayor = userAsync.valueOrNull?.isMayor ?? false;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Schedule'),
-        actions: [
-          if (isMayor)
-            IconButton(
-              icon: const Icon(Icons.add),
-              tooltip: 'Add Block',
-              onPressed: () => context.push('/schedule/add'),
-            ),
-        ],
-      ),
-      body: Column(
+      backgroundColor: const Color(0xFFFBFBFB),
+      body: Stack(
         children: [
-          // Day-tab row
-          _DayTabBar(
-            selected: _selectedDayKey,
-            onSelect: (d) => setState(() => _selectedDayKey = d),
+          // Architectural Background Detail (Light)
+          Positioned(
+            top: -100,
+            left: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.primary.withOpacity(0.08),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
           ),
-          const Divider(height: 1),
-
-          // Block list for selected day
-          Expanded(
-            child: blocksAsync.when(
-              data: (blocks) {
-                final filtered = blocks
-                    .where((b) => b.dayOfWeek == _selectedDayKey)
-                    .toList();
-                if (filtered.isEmpty) {
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      try {
-                        await StatusEngine().runOnAppLoad();
-                      } catch (_) {}
+          
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ScheduleHeader(isMayor: isMayor),
+                
+                // Day-tab row
+                _DayTabBar(
+                  selected: _selectedDayKey,
+                  onSelect: (d) => setState(() => _selectedDayKey = d),
+                ),
+                
+                // Block list for selected day
+                Expanded(
+                  child: blocksAsync.when(
+                    data: (blocks) {
+                      final filtered = blocks
+                          .where((b) => b.dayOfWeek == _selectedDayKey)
+                          .toList();
+                      if (filtered.isEmpty) {
+                        return RefreshIndicator(
+                          onRefresh: () async {
+                            try {
+                              await StatusEngine().runOnAppLoad();
+                            } catch (_) {}
+                          },
+                          child: _EmptyDay(day: TimeUtils.dayLabel(_selectedDayKey)),
+                        );
+                      }
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          try {
+                            await StatusEngine().runOnAppLoad();
+                          } catch (_) {}
+                        },
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (_, i) => _BlockCard(
+                            block: filtered[i],
+                            index: i,
+                          ),
+                        ),
+                      );
                     },
-                    child: _EmptyDay(day: TimeUtils.dayLabel(_selectedDayKey)),
-                  );
-                }
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    try {
-                      await StatusEngine().runOnAppLoad();
-                    } catch (_) {}
-                  },
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) => _BlockCard(block: filtered[i]),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    error: (e, _) => Center(child: Text('Error: $e')),
                   ),
-                );
-              },
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+                ),
+              ],
             ),
           ),
         ],
@@ -94,11 +114,20 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           ? Padding(
               padding: const EdgeInsets.only(bottom: 80),
               child: FloatingActionButton.extended(
+                elevation: 4,
                 onPressed: () => context.push('/schedule/add'),
-                icon: const Icon(Icons.add),
-                label: const Text('Add Block'),
+                icon: const Icon(Icons.add_box_outlined, color: Colors.white, size: 20),
+                label: const Text(
+                  'NEW BLOCK',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
+                ),
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
               ),
             )
           : null,
@@ -106,7 +135,45 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   }
 }
 
-// ---------- Day tab bar ----------
+// ---------- Header ----------
+
+class _ScheduleHeader extends StatelessWidget {
+  final bool isMayor;
+  const _ScheduleHeader({required this.isMayor});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(24, 30, 24, 15),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'MY',
+            style: TextStyle(
+              color: AppColors.primary, // Using direct primary instead of opacity for cleaner look
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 6,
+            ),
+          ),
+          SizedBox(height: 2),
+          Text(
+            'SCHEDULE',
+            style: TextStyle(
+              color: Color(0xFF1A1A1A),
+              fontSize: 36,
+              fontWeight: FontWeight.w900,
+              height: 1.0,
+              letterSpacing: -1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 class _DayTabBar extends StatelessWidget {
   final String selected;
@@ -117,25 +184,39 @@ class _DayTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        children: _days
-            .map((d) => _DayChip(
-                  day: d,
-                  label: _shortLabel(d),
-                  selected: selected == d,
-                  onTap: () => onSelect(d),
-                ))
-            .toList(),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+          child: Text(
+            'TIMELINE',
+            style: TextStyle(
+              color: Colors.black26,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 44,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: _days
+                .map((d) => _DayChip(
+                      day: d,
+                      label: d.toUpperCase(),
+                      selected: selected == d,
+                      onTap: () => onSelect(d),
+                    ))
+                .toList(),
+          ),
+        ),
+        const SizedBox(height: 10),
+      ],
     );
-  }
-
-  String _shortLabel(String key) {
-    return key; // Keys are now already 'Sun', 'Mon', etc.
   }
 }
 
@@ -144,33 +225,44 @@ class _DayChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  const _DayChip(
-      {required this.day,
-      required this.label,
-      required this.selected,
-      required this.onTap});
+  
+  const _DayChip({
+    required this.day,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 6, bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: selected ? AppColors.primary : Colors.grey.shade300),
+            color: selected ? AppColors.primary : Colors.black.withOpacity(0.06),
+            width: 1,
+          ),
+          boxShadow: selected ? [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            )
+          ] : null,
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? Colors.white : Colors.grey.shade700,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+              color: selected ? Colors.white : Colors.black45,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
             ),
           ),
         ),
@@ -183,7 +275,8 @@ class _DayChip extends StatelessWidget {
 
 class _BlockCard extends ConsumerStatefulWidget {
   final ScheduleBlockModel block;
-  const _BlockCard({required this.block});
+  final int index;
+  const _BlockCard({required this.block, required this.index});
 
   @override
   ConsumerState<_BlockCard> createState() => _BlockCardState();
@@ -242,133 +335,211 @@ class _BlockCardState extends ConsumerState<_BlockCard> {
     final canCheckIn = block.checkInStatus == CheckInStatus.pending &&
         TimeUtils.minutesUntil(block.startTime) <= 15;
     final isCheckedIn = block.checkInStatus == CheckInStatus.checkedIn;
+    final statusColor = _statusColor(block);
 
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: block.hasConflict
-            ? const BorderSide(color: Colors.red, width: 2)
-            : BorderSide.none,
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        // When checked in, go to the check-in screen (which shows the Release button).
-        // Otherwise go to the edit screen.
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 400 + (widget.index * 80).clamp(0, 500)),
+      tween: Tween(begin: 0.0, end: 1.0),
+      curve: Curves.easeOutQuart,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 15 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: GestureDetector(
         onTap: () => context.push('/schedule/checkin/${block.blockId}'),
         onLongPress: () => context.push('/schedule/edit/${block.blockId}'),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
+        child: Container(
+          height: 110,
+          child: Stack(
             children: [
-              // Status indicator bar
-              Container(
-                width: 4,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: _statusColor(block),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Block info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(block.subject,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600, fontSize: 15)),
-                        ),
-                        if (block.hasConflict)
-                          const Icon(Icons.warning_amber_rounded,
-                              color: Colors.red, size: 18),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${block.roomId}  ·  ${block.instructor}',
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 13),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${TimeUtils.toDisplayTime(block.startTime)} – ${TimeUtils.toDisplayTime(block.endTime)}',
-                      style: const TextStyle(
-                          color: AppColors.textSecondary, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              // Status badge + check-in button
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: _statusColor(block).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      _statusLabel(block),
-                      style: TextStyle(
-                          color: _statusColor(block),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600),
-                    ),
+              // Main Card Body
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F1F1),
+                    border: Border.all(color: Colors.black.withOpacity(0.08)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      )
+                    ],
                   ),
-                  if (canCheckIn) ...[
-                    const SizedBox(height: 6),
-                    GestureDetector(
-                      onTap: () =>
-                          context.push('/schedule/checkin/${block.blockId}'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'Check In',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+                  child: Row(
+                    children: [
+                      // Time dominant element
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            TimeUtils.toDisplayTime(block.startTime),
+                            style: const TextStyle(
+                              color: Color(0xFF1A1A1A),
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              height: 1,
+                              letterSpacing: -1,
+                            ),
+                          ),
+                          Text(
+                            'UNLESS RELEASED',
+                            style: TextStyle(
+                              color: AppColors.primary.withOpacity(0.6),
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 20),
+                      // Divider
+                      Container(
+                        width: 1,
+                        height: 40,
+                        color: Colors.black.withOpacity(0.05),
+                      ),
+                      const SizedBox(width: 20),
+                      // Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              block.subject.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF1A1A1A),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 13,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              'ROOM ${block.roomId} · ${block.instructor}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  color: Colors.black38,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
-                  if (isCheckedIn) ...[
-                    const SizedBox(height: 6),
-                    GestureDetector(
-                      onTap: () =>
-                          context.push('/schedule/checkin/${block.blockId}'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red.shade300),
-                        ),
-                        child: Text(
-                          'Release',
-                          style: TextStyle(
-                              color: Colors.red.shade700,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold),
-                        ),
+                      // Status & Actions
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _StatusBadge(
+                            label: _statusLabel(block).toUpperCase(),
+                            color: statusColor,
+                          ),
+                          if (canCheckIn || isCheckedIn) ...[
+                            const SizedBox(height: 8),
+                            _ActionTileButton(
+                              label: isCheckedIn ? 'RELEASE' : 'CHECK IN',
+                              color: isCheckedIn ? Colors.red.shade400 : AppColors.primary,
+                              onTap: () => context.push('/schedule/checkin/${block.blockId}'),
+                            ),
+                          ],
+                        ],
                       ),
-                    ),
-                  ],
-                ],
+                    ],
+                  ),
+                ),
+              ),
+              // Accent L-shape detail
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Container(
+                  width: 24,
+                  height: 2,
+                  color: block.hasConflict ? Colors.red.withOpacity(0.6) : statusColor.withOpacity(0.4),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Container(
+                  width: 2,
+                  height: 24,
+                  color: block.hasConflict ? Colors.red.withOpacity(0.6) : statusColor.withOpacity(0.4),
+                ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _StatusBadge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionTileButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionTileButton({
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color,
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.5,
           ),
         ),
       ),
@@ -384,25 +555,32 @@ class _EmptyDay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: SizedBox(
-        height: 300,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.event_available_outlined,
-                  size: 56, color: Colors.grey),
-              const SizedBox(height: 12),
-              Text('No classes on $day',
-                  style: const TextStyle(color: Colors.grey, fontSize: 16)),
-              const SizedBox(height: 4),
-              const Text('Tap + to add a schedule block.',
-                  style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.event_busy_rounded, size: 80, color: Colors.black.withOpacity(0.04)),
+          const SizedBox(height: 20),
+          Text(
+            'NULL_SCHEDULE_DATA',
+            style: TextStyle(
+              color: Colors.black.withOpacity(0.12),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+            ),
           ),
-        ),
+          const SizedBox(height: 4),
+          Text(
+            'NO CLASSES DETECTED FOR $day'.toUpperCase(),
+            style: TextStyle(
+              color: Colors.black.withOpacity(0.08),
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }
