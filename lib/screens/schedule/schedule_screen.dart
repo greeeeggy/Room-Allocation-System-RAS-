@@ -443,10 +443,11 @@ class _BlockCardState extends ConsumerState<_BlockCard> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _StatusBadge(
-                            label: _statusLabel(block).toUpperCase(),
-                            color: statusColor,
-                          ),
+                          if (block.checkInStatus != CheckInStatus.pending)
+                            _StatusBadge(
+                              label: _statusLabel(block).toUpperCase(),
+                              color: statusColor,
+                            ),
                           if (canCheckIn || isCheckedIn) ...[
                             const SizedBox(height: 8),
                             _ActionTileButton(

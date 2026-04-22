@@ -38,6 +38,65 @@ class StatusEngine {
     final batch = _db.batch();
     bool hasPendingWrites = false;
 
+    // ── 0. Global Reset (Weekly/Daily) ──────────────────────────────────
+    // Reset recurring blocks from released/no_show/checked_in -> pending
+    // if today is not their day or if it's before their session today.
+    final nonPendingSnap = await _db
+        .collection('scheduleBlocks')
+        .where('checkInStatus', whereIn: ['checked_in', 'released', 'no_show'])
+        .where('isActive', isEqualTo: true)
+        .get();
+
+    for (final doc in nonPendingSnap.docs) {
+      final dayKey = doc['dayOfWeek'] as String;
+      final startTimeStr = doc['startTime'] as String;
+      final startTime = TimeUtils.parseHHmm(startTimeStr, now);
+      final resetCutoff = startTime.subtract(const Duration(minutes: 15));
+
+      bool shouldReset = false;
+      if (dayKey != todayKey) {
+        shouldReset = true;
+      } else if (now.isBefore(resetCutoff)) {
+        shouldReset = true;
+      }
+
+      if (shouldReset) {
+        batch.update(doc.reference, {
+          'checkInStatus': FieldValue.delete(),
+          'hasConflict': false,
+        });
+
+        // SAFETY: If we are resetting a 'checked_in' block, make sure the room is freed.
+        if (doc['checkInStatus'] == 'checked_in') {
+          final occupiedSnap = await _db
+              .collection('rooms')
+              .where('currentOccupantBlockId', isEqualTo: doc.id)
+              .limit(1)
+              .get();
+          for (final roomDoc in occupiedSnap.docs) {
+            batch.update(roomDoc.reference,
+                {'status': 'available', 'currentOccupantBlockId': null});
+          }
+        }
+        hasPendingWrites = true;
+      }
+    }
+
+    // ── 0b. Cleanup stale 'No Class' markers ────────────────────────────
+    final noClassSnap = await _db
+        .collection('scheduleBlocks')
+        .where('noClassDate', isGreaterThan: "")
+        .get();
+
+    final todayStr = TimeUtils.todayDateKey();
+    for (final doc in noClassSnap.docs) {
+      final ncd = doc['noClassDate'] as String;
+      if (ncd.compareTo(todayStr) < 0) {
+        batch.update(doc.reference, {'noClassDate': FieldValue.delete()});
+        hasPendingWrites = true;
+      }
+    }
+
     // ── 1. Auto-release ─────────────────────────────────────────────────
     // checked_in blocks whose endTime has passed → release room
     // Find the room by currentOccupantBlockId (works for both normal
