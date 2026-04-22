@@ -539,6 +539,7 @@ class _ArchitectTile extends StatelessWidget {
       case 'projector': return Icons.videocam_rounded;
       case 'whiteboard': return Icons.square_outlined;
       case 'blackboard': return Icons.square;
+      case 'computer': return Icons.computer;
       default: return Icons.check_circle_outline_rounded;
     }
   }

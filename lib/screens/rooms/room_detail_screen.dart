@@ -262,6 +262,7 @@ class _RoomDetailBody extends ConsumerWidget {
       'blackboard': 'Blackboard',
       'aircon': 'Air Conditioning',
       'projector': 'Projector',
+      'computer': 'Computer',
     };
     return m[f] ?? f;
   }
