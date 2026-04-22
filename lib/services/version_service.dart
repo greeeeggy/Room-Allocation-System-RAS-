@@ -25,11 +25,16 @@ class VersionService {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
+      print('[VersionService] Checking for updates. Current version: $currentVersion');
 
       final response = await http.get(Uri.parse(_apiUrl));
+      print('[VersionService] GitHub API Response: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final String latestVersion = data['tag_name'].toString().replaceAll('v', '');
+        print('[VersionService] Latest version found on GitHub: $latestVersion');
+        
         final String releaseNotes = data['body'] ?? '';
         
         // Find the first APK asset
@@ -42,6 +47,9 @@ class VersionService {
           }
         }
 
+        final isAvailable = _isVersionGreater(latestVersion, currentVersion);
+        print('[VersionService] Update available: $isAvailable');
+
         // If no APK found, use the zipball or release page as fallback
         downloadUrl ??= data['html_url'];
 
@@ -49,11 +57,11 @@ class VersionService {
           latestVersion: latestVersion,
           releaseNotes: releaseNotes,
           downloadUrl: downloadUrl!,
-          isUpdateAvailable: _isVersionGreater(latestVersion, currentVersion),
+          isUpdateAvailable: isAvailable,
         );
       }
     } catch (e) {
-      print('Error checking for updates: $e');
+      print('[VersionService] Error checking for updates: $e');
     }
     return null;
   }

@@ -33,12 +33,15 @@ void main() async {
   runApp(const ProviderScope(child: RoomAllocationSystemApp()));
 }
 
-void _checkForUpdates(BuildContext context) async {
+void _checkForUpdates(WidgetRef ref) async {
   final versionService = VersionService();
   final versionInfo = await versionService.checkForUpdates();
   
   if (versionInfo != null && versionInfo.isUpdateAvailable) {
-    if (context.mounted) {
+    final router = ref.read(routerProvider);
+    final context = router.routerDelegate.navigatorKey.currentContext;
+
+    if (context != null && context.mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -71,7 +74,7 @@ class RoomAllocationSystemApp extends ConsumerWidget {
     
     // Check for updates after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkForUpdates(context);
+      _checkForUpdates(ref);
     });
 
     return MaterialApp.router(

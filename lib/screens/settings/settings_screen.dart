@@ -54,7 +54,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final picked = await picker.pickImage(
       source: source,
-      // No maxWidth, maxHeight, or imageQuality reduction as requested
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 85, // Balanced for high quality and < 1MB document limit
     );
 
     if (picked != null) {
