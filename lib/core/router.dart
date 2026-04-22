@@ -8,6 +8,7 @@ import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/schedule/schedule_screen.dart';
 import '../screens/schedule/add_block_screen.dart';
 import '../screens/schedule/edit_block_screen.dart';
+import '../screens/schedule/my_weekly_schedule_screen.dart';
 import '../screens/checkin/checkin_screen.dart';
 import '../screens/rooms/room_detail_screen.dart';
 import '../screens/rooms/room_search_screen.dart';
@@ -102,6 +103,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, state) => CheckInScreen(
                         blockId: state.pathParameters['blockId']!),
+                  ),
+                  GoRoute(
+                    path: 'weekly',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (_, __) => const MyWeeklyScheduleScreen(),
                   ),
                 ],
               ),

@@ -22,6 +22,7 @@ class ScheduleScreen extends ConsumerStatefulWidget {
 class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   // The day key currently shown in the list ('M', 'T', ...)
   String _selectedDayKey = TimeUtils.dayKey(DateTime.now());
+  static const String _allKey = 'ALL';
 
   static const _days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -63,7 +64,13 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 // Day-tab row
                 _DayTabBar(
                   selected: _selectedDayKey,
-                  onSelect: (d) => setState(() => _selectedDayKey = d),
+                  onSelect: (d) {
+                    if (d == _allKey) {
+                      context.push('/schedule/weekly');
+                    } else {
+                      setState(() => _selectedDayKey = d);
+                    }
+                  },
                 ),
                 
                 // Block list for selected day
@@ -80,7 +87,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                               await StatusEngine().runOnAppLoad();
                             } catch (_) {}
                           },
-                          child: _EmptyDay(day: TimeUtils.dayLabel(_selectedDayKey)),
+                          child: EmptyDay(day: TimeUtils.dayLabel(_selectedDayKey)),
                         );
                       }
                       return RefreshIndicator(
@@ -179,7 +186,7 @@ class _ScheduleHeader extends StatelessWidget {
 class _DayTabBar extends StatelessWidget {
   final String selected;
   final ValueChanged<String> onSelect;
-  static const _days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  static const _days = ['ALL', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   const _DayTabBar({required this.selected, required this.onSelect});
 
@@ -551,9 +558,9 @@ class _ActionTileButton extends StatelessWidget {
 
 // ---------- Empty state ----------
 
-class _EmptyDay extends StatelessWidget {
+class EmptyDay extends StatelessWidget {
   final String day;
-  const _EmptyDay({required this.day});
+  const EmptyDay({required this.day, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -587,3 +594,4 @@ class _EmptyDay extends StatelessWidget {
     );
   }
 }
+

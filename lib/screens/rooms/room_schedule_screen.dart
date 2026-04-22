@@ -158,10 +158,15 @@ class _RoomScheduleScreenState extends ConsumerState<RoomScheduleScreen> {
         height: currentHeight,
         width: _timeColumnWidth,
         decoration: BoxDecoration(
-          color: isLunch ? Colors.orange.withOpacity(0.1) : Colors.grey[900],
+          color: isLunch ? Colors.orange.withOpacity(0.1) : Colors.grey[900]!.withOpacity(0.6),
+          image: const DecorationImage(
+            image: AssetImage('assets/images/bg.png'),
+            fit: BoxFit.cover,
+            opacity: 0.2,
+          ),
           border: Border(
-            bottom: BorderSide(color: Colors.grey[800]!, width: 1),
-            right: BorderSide(color: Colors.grey[700]!, width: 2),
+            bottom: const BorderSide(color: Colors.black, width: 1),
+            right: const BorderSide(color: Colors.black, width: 2),
           ),
         ),
         child: Stack(
@@ -209,10 +214,15 @@ class _RoomScheduleScreenState extends ConsumerState<RoomScheduleScreen> {
       height: height,
       width: width,
       decoration: BoxDecoration(
-        color: isLunch ? Colors.orange.withOpacity(0.1) : Colors.grey[900],
+        color: isLunch ? Colors.orange.withOpacity(0.1) : Colors.grey[900]!.withOpacity(0.4),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/bg.png'),
+          fit: BoxFit.cover,
+          opacity: 0.15,
+        ),
         border: Border(
-          bottom: BorderSide(color: Colors.grey[800]!),
-          right: BorderSide(color: Colors.grey[700]!),
+          bottom: const BorderSide(color: Colors.black),
+          right: const BorderSide(color: Colors.black),
         ),
       ),
       child: isLunch
@@ -233,10 +243,15 @@ class _RoomScheduleScreenState extends ConsumerState<RoomScheduleScreen> {
               height: _headerHeight,
               width: _timeColumnWidth,
               decoration: BoxDecoration(
-                color: Colors.grey[850],
+                color: Colors.grey[850]!.withOpacity(0.8),
+                image: const DecorationImage(
+                  image: AssetImage('assets/images/bg.png'),
+                  fit: BoxFit.cover,
+                  opacity: 0.2,
+                ),
                 border: Border(
-                  bottom: BorderSide(color: Colors.grey[700]!, width: 2),
-                  right: BorderSide(color: Colors.grey[700]!, width: 2),
+                  bottom: const BorderSide(color: Colors.black, width: 2),
+                  right: const BorderSide(color: Colors.black, width: 2),
                 ),
               ),
               child: const Center(
@@ -264,10 +279,15 @@ class _RoomScheduleScreenState extends ConsumerState<RoomScheduleScreen> {
                   height: _headerHeight,
                   width: _columnWidths[dayIndex],
                   decoration: BoxDecoration(
-                    color: Colors.grey[850],
+                    color: Colors.grey[850]!.withOpacity(0.8),
+                    image: const DecorationImage(
+                      image: AssetImage('assets/images/bg.png'),
+                      fit: BoxFit.cover,
+                      opacity: 0.2,
+                    ),
                     border: Border(
-                      bottom: BorderSide(color: Colors.grey[700]!, width: 2),
-                      right: BorderSide(color: Colors.grey[700]!, width: 1),
+                      bottom: const BorderSide(color: Colors.black, width: 2),
+                      right: const BorderSide(color: Colors.black, width: 1),
                     ),
                   ),
                   child: Stack(
