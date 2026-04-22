@@ -7,19 +7,28 @@ class AppColors {
   static const Color occupied  = Color(0xFFE57373);   // red
   static const Color soon      = Color(0xFFFFB74D);   // amber
 
-  // Brand
-  static const Color primary   = Color(0xFF1565C0);   // deep blue
-  static const Color accent    = Color(0xFF26A69A);   // stylish mint/teal
-  static const Color surface   = Color(0xFFF5F7FA);
-  static const Color card      = Color(0xFFFFFFFF);
+  // Brand — Red family palette
+  static const Color primary       = Color(0xFF890620); // Burgundy
+  static const Color primaryLight  = Color(0xFFB6465F); // Berry Crush
+  static const Color primaryDark   = Color(0xFF2C0703); // Rich Mahogany
+  static const Color accent        = Color(0xFFDA9F93); // Rosy Taupe
+  static const Color surface       = Color(0xFFF5F0EE); // warm near-white (derived from Almond Silk)
+  static const Color card          = Color(0xFFFFFFFF);
+
+  // Auth screen specific
+  static const Color authBackground    = Color(0xFF1A0408); // near-black with red undertone
+  static const Color authGlow          = Color(0xFF890620); // Burgundy glow
+  static const Color authSurface       = Color(0x1AFFFFFF); // glass white 10%
+  static const Color authBorder        = Color(0x33EBD4CB); // Almond Silk at 20%
 
   // Glassmorphism
-  static const Color glassBackground = Color(0x33FFFFFF); // white with 20% opacity
-  static const Color glassBorder     = Color(0x33FFFFFF); // white with 20% opacity for borders
+  static const Color glassBackground = Color(0x1AFFFFFF);
+  static const Color glassBorder     = Color(0x33FFFFFF);
 
   // Text
-  static const Color textPrimary   = Color(0xFF1A1A2E);
+  static const Color textPrimary   = Color(0xFF1A0408);
   static const Color textSecondary = Color(0xFF6B7280);
+  static const Color textOnDark    = Color(0xFFEBD4CB); // Almond Silk
 }
 
 class AppTheme {
@@ -57,6 +66,10 @@ class AppTheme {
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         labelStyle: GoogleFonts.outfit(),
         hintStyle: GoogleFonts.outfit(),
