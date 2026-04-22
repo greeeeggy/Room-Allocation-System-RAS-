@@ -1,18 +1,81 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
-  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _isUpdatingPhoto = false;
+
+  Future<void> _signOut() async {
     await ref.read(authServiceProvider).logout();
-    // GoRouter's redirect in router.dart will automatically send to /login
-    // once authStateProvider emits null — no manual navigation needed.
+  }
+
+  Future<void> _changePhoto(String userId) async {
+    final picker = ImagePicker();
+    
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final picked = await picker.pickImage(
+      source: source,
+      // No maxWidth, maxHeight, or imageQuality reduction as requested
+    );
+
+    if (picked != null) {
+      setState(() => _isUpdatingPhoto = true);
+      try {
+        await ref.read(authServiceProvider).updateProfilePhoto(userId, File(picked.path));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile picture updated!')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error updating photo: $e')),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isUpdatingPhoto = false);
+      }
+    }
   }
 
   Widget _buildSectionHeader(String title) {
@@ -76,7 +139,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final userAsync = ref.watch(authStateProvider);
 
     return Scaffold(
@@ -115,37 +178,78 @@ class SettingsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
                   child: Column(
                     children: [
-                      () {
-                        final photoUrl = user.photoURL;
-                        if (photoUrl != null && photoUrl.isNotEmpty) {
-                          return CircleAvatar(
-                            radius: 40,
-                            backgroundColor: Colors.white.withOpacity(0.25),
-                            backgroundImage:
-                                CachedNetworkImageProvider(photoUrl),
-                          );
-                        }
-                        return CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Colors.white.withOpacity(0.25),
-                          child: Text(
-                            user.name.isNotEmpty
-                                ? user.name[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
+                      Stack(
+                        children: [
+                          () {
+                            final photoUrl = user.photoURL;
+                            if (photoUrl != null && photoUrl.isNotEmpty) {
+                              if (photoUrl.startsWith('http')) {
+                                return CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor: Colors.white.withOpacity(0.25),
+                                  backgroundImage: CachedNetworkImageProvider(photoUrl),
+                                );
+                              } else {
+                                // Assume Base64
+                                return CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor: Colors.white.withOpacity(0.25),
+                                  backgroundImage: MemoryImage(base64Decode(photoUrl)),
+                                );
+                              }
+                            }
+                            return CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.white.withOpacity(0.25),
+                              child: Text(
+                                user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            );
+                          }(),
+                          if (_isUpdatingPhoto)
+                            const Positioned.fill(
+                              child: Center(
+                                child: CircularProgressIndicator(color: Colors.white),
+                              ),
+                            ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () => _changePhoto(user.userId),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                             ),
                           ),
-                        );
-                      }(),
-                      const SizedBox(height: 12),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                       Text(
                         user.name,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -154,7 +258,7 @@ class SettingsScreen extends ConsumerWidget {
                         user.email,
                         style: const TextStyle(
                           color: Colors.white70,
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                       ),
                     ],
@@ -213,7 +317,7 @@ class SettingsScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    onTap: () => _signOut(context, ref),
+                    onTap: _signOut,
                   ),
                 ),
 

@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../core/constants.dart';
@@ -93,5 +95,15 @@ class AuthService {
   // Logout
   Future<void> logout() async {
     await _auth.signOut();
+  }
+
+  // Update profile photo (Base64)
+  Future<void> updateProfilePhoto(String userId, File photo) async {
+    final bytes = await photo.readAsBytes();
+    final base64 = base64Encode(bytes);
+    
+    await _db.collection('users').doc(userId).update({
+      'photoURL': base64,
+    });
   }
 }

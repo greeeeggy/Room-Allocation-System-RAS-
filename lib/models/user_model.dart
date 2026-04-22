@@ -58,6 +58,7 @@ class UserModel {
     'department': department,
     'courseSection': courseSection,
     'createdAt': FieldValue.serverTimestamp(),
+    'photoURL': photoURL,
     'fcmToken': fcmToken,
   };
 
