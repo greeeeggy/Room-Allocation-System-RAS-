@@ -93,9 +93,9 @@ class _LostItemDetailScreenState extends ConsumerState<LostItemDetailScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Yes, Claimed'),
+            child: const Text('Claimed'),
           ),
         ],
       ),
@@ -109,7 +109,7 @@ class _LostItemDetailScreenState extends ConsumerState<LostItemDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Item marked as claimed!'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.primary,
         ),
       );
       context.pop();
@@ -164,7 +164,7 @@ class _LostItemDetailScreenState extends ConsumerState<LostItemDetailScreen> {
               child: ElevatedButton.icon(
                 onPressed: _claimItem,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade600,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -174,7 +174,7 @@ class _LostItemDetailScreenState extends ConsumerState<LostItemDetailScreen> {
                 ),
                 icon: const Icon(Icons.check_circle, size: 18),
                 label: const Text(
-                  'Claim',
+                  'Claimed',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
