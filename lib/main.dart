@@ -6,7 +6,9 @@ import 'core/theme.dart';
 import 'core/router.dart';
 import 'core/utils/status_engine.dart';
 import 'services/onesignal_service.dart';
+import 'services/version_service.dart';
 import 'providers/auth_provider.dart';
+import 'widgets/update_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +29,27 @@ void main() async {
     debugPrint('[StatusEngine] runOnAppLoad failed: $e');
   }
   statusEngine.startPeriodicCheck();
+  
   runApp(const ProviderScope(child: RoomAllocationSystemApp()));
+}
+
+void _checkForUpdates(BuildContext context) async {
+  final versionService = VersionService();
+  final versionInfo = await versionService.checkForUpdates();
+  
+  if (versionInfo != null && versionInfo.isUpdateAvailable) {
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => UpdateDialog(
+          version: versionInfo.latestVersion,
+          releaseNotes: versionInfo.releaseNotes,
+          downloadUrl: versionInfo.downloadUrl,
+        ),
+      );
+    }
+  }
 }
 
 class RoomAllocationSystemApp extends ConsumerWidget {
@@ -46,6 +68,12 @@ class RoomAllocationSystemApp extends ConsumerWidget {
     });
 
     final router = ref.watch(routerProvider);
+    
+    // Check for updates after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForUpdates(context);
+    });
+
     return MaterialApp.router(
       title: 'Room Allocation System',
       theme: AppTheme.light,
