@@ -32,9 +32,11 @@ class UserModel {
       userId: data['userId'] ?? doc.id,
       name: data['name'] ?? '',
       email: data['email'] ?? '',
-      role: data['role'] == 'council_president'
-          ? UserRole.councilPresident
-          : UserRole.mayor,
+      role: data['role'] == 'engineering_council_president'
+          ? UserRole.engineeringCouncilPresident
+          : data['role'] == 'council_president'
+              ? UserRole.councilPresident
+              : UserRole.mayor,
       department: Departments.getAbbreviation(rawDept),
       courseSection: data['courseSection'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
@@ -48,7 +50,11 @@ class UserModel {
     'userId': userId,
     'name': name,
     'email': email,
-    'role': role == UserRole.councilPresident ? 'council_president' : 'mayor',
+    'role': role == UserRole.engineeringCouncilPresident
+        ? 'engineering_council_president'
+        : role == UserRole.councilPresident
+            ? 'council_president'
+            : 'mayor',
     'department': department,
     'courseSection': courseSection,
     'createdAt': FieldValue.serverTimestamp(),
@@ -57,4 +63,5 @@ class UserModel {
 
   bool get isMayor => role == UserRole.mayor;
   bool get isCouncilPresident => role == UserRole.councilPresident;
+  bool get isEngineeringCouncilPresident => role == UserRole.engineeringCouncilPresident;
 }

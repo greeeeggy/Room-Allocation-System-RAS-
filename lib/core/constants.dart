@@ -1,6 +1,6 @@
 // Departments, roles, room status, and day-of-week enums/constants
 
-enum UserRole { mayor, councilPresident }
+enum UserRole { mayor, councilPresident, engineeringCouncilPresident }
 
 enum RoomStatus { available, occupied, soon, noClass }
 
@@ -9,6 +9,7 @@ enum DayOfWeek { Sun, Mon, Tue, Wed, Thu, Fri, Sat }
 enum CheckInStatus { pending, checkedIn, released, noShow }
 
 class Departments {
+  static const String engineeringCouncil = 'Engineering Council';
   static const String bsie = 'BS in Industrial Engineering';
   static const String bsase = 'BS in Aerospace Engineering';
   static const String bsee = 'BS in Electrical Engineering';
@@ -17,8 +18,21 @@ class Departments {
   static const String bscpe = 'BS in Computer Engineering';
   static const String bsce = 'BS in Civil Engineering';
 
-  // Order for registration dropdown
+  // Order for registration dropdown (Engineering Council first — highest order)
   static const List<String> allFullNames = [
+    engineeringCouncil,
+    bsie,
+    bsase,
+    bsee,
+    bsece,
+    bsme,
+    bscpe,
+    bsce,
+  ];
+
+  /// Department names available for regular council presidents and mayors
+  /// (excludes Engineering Council which is auto-assigned).
+  static const List<String> departmentFullNames = [
     bsie,
     bsase,
     bsee,
@@ -30,6 +44,7 @@ class Departments {
 
   // Legacy/abbreviation mapping
   static const Map<String, String> _toAbbreviation = {
+    engineeringCouncil: 'Eng Council',
     bsie: 'BSIE',
     bsase: 'BSASE',
     bsee: 'BSEE',
@@ -47,6 +62,7 @@ class Departments {
     'CE': 'BSCE',
     'Civil': 'BSCE',
     'CpE': 'BSCpE',
+    'EC': 'Eng Council',
   };
 
   static String getAbbreviation(String fullNameOrLegacy) {
@@ -54,6 +70,7 @@ class Departments {
   }
 
   static List<String> get allAbbreviations => [
+        'Eng Council',
         'BSIE',
         'BSASE',
         'BSEE',

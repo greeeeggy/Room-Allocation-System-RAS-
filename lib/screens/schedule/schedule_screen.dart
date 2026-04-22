@@ -11,6 +11,7 @@ import '../../models/schedule_block_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/utils/status_engine.dart';
 import '../../providers/schedule_provider.dart';
+import '../../providers/admin_provider.dart';
 
 class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
@@ -23,6 +24,9 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   // The day key currently shown in the list ('M', 'T', ...)
   String _selectedDayKey = TimeUtils.dayKey(DateTime.now());
   static const String _allKey = 'ALL';
+  int _headerTapCount = 0;
+  bool _showEndOfSemester = false;
+  bool _isDeletingSemester = false;
 
   static const _days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -59,7 +63,22 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _ScheduleHeader(isMayor: isMayor),
+                _ScheduleHeader(
+                  isMayor: isMayor,
+                  onTap: () {
+                    _headerTapCount++;
+                    if (_headerTapCount >= 5 && !_showEndOfSemester) {
+                      setState(() => _showEndOfSemester = true);
+                    }
+                  },
+                ),
+                
+                // Hidden "End of Semester" button (revealed after 5 taps)
+                if (_showEndOfSemester && isMayor)
+                  _EndOfSemesterBar(
+                    isDeleting: _isDeletingSemester,
+                    onPressed: () => _handleEndOfSemester(context),
+                  ),
                 
                 // Day-tab row
                 _DayTabBar(
@@ -141,42 +160,200 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           : null,
     );
   }
+
+  // ── End of Semester flow ──────────────────────────────────────────
+
+  Future<void> _handleEndOfSemester(BuildContext context) async {
+    // Warning 1
+    final p1 = await _showSemesterWarning(
+      context: context,
+      title: 'Delete All Schedules',
+      icon: Icons.info_outline_rounded,
+      iconColor: AppColors.soon,
+      message:
+          'You are about to delete all of your schedules for this semester.\n\n'
+          'This will remove every class block you\'ve added.',
+      confirmLabel: 'PROCEED',
+      confirmColor: AppColors.soon,
+    );
+    if (p1 != true) return;
+
+    // Warning 2
+    final p2 = await _showSemesterWarning(
+      context: context,
+      title: '⚠️  Permanent Deletion',
+      icon: Icons.warning_amber_rounded,
+      iconColor: Colors.orange.shade700,
+      message:
+          'This will permanently delete ALL your schedule blocks.\n\n'
+          'Classes, check-ins, and room assignments will be lost.\n\n'
+          'Continue?',
+      confirmLabel: 'CONTINUE',
+      confirmColor: Colors.orange.shade700,
+    );
+    if (p2 != true) return;
+
+    // Warning 3
+    final p3 = await _showSemesterWarning(
+      context: context,
+      title: '🚨 FINAL WARNING',
+      icon: Icons.dangerous_rounded,
+      iconColor: Colors.red.shade700,
+      message:
+          'All of your schedule data for this semester will be permanently '
+          'erased.\n\nThis cannot be undone.\n\nAre you absolutely sure?',
+      confirmLabel: 'DELETE ALL',
+      confirmColor: Colors.red.shade700,
+    );
+    if (p3 != true) return;
+
+    // Execute
+    final user = ref.read(authStateProvider).valueOrNull;
+    if (user == null) return;
+
+    setState(() => _isDeletingSemester = true);
+    try {
+      await ref.read(adminServiceProvider).deleteAllMySchedules(user.userId);
+      if (mounted) {
+        setState(() {
+          _isDeletingSemester = false;
+          _showEndOfSemester = false;
+          _headerTapCount = 0;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All schedules deleted successfully.'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isDeletingSemester = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<bool?> _showSemesterWarning({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required String message,
+    required String confirmLabel,
+    required Color confirmColor,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFFFBFBFB),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+        title: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF1A1A1A),
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: GoogleFonts.outfit(
+            fontSize: 13,
+            color: Colors.black54,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'CANCEL',
+              style: GoogleFonts.outfit(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+                color: Colors.black38,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => Navigator.pop(ctx, true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(color: confirmColor),
+              child: Text(
+                confirmLabel,
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ---------- Header ----------
 
 class _ScheduleHeader extends StatelessWidget {
   final bool isMayor;
-  const _ScheduleHeader({required this.isMayor});
+  final VoidCallback? onTap;
+  const _ScheduleHeader({required this.isMayor, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'MY',
-            style: GoogleFonts.outfit(
-              color: AppColors.primary, 
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 6,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'MY',
+              style: GoogleFonts.outfit(
+                color: AppColors.primary, 
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 6,
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'SCHEDULE',
-            style: GoogleFonts.outfit(
-              color: const Color(0xFF1A1A1A),
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              height: 1.0,
-              letterSpacing: -1,
+            const SizedBox(height: 2),
+            Text(
+              'SCHEDULE',
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF1A1A1A),
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                height: 1.0,
+                letterSpacing: -1,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -590,6 +767,86 @@ class EmptyDay extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------- End of Semester bar (hidden, revealed after 5 taps) ----------
+
+class _EndOfSemesterBar extends StatelessWidget {
+  final bool isDeleting;
+  final VoidCallback onPressed;
+
+  const _EndOfSemesterBar({
+    required this.isDeleting,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.red.shade700.withOpacity(0.06),
+          border: Border.all(color: Colors.red.withOpacity(0.15)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.delete_sweep_outlined,
+              color: Colors.red.shade400,
+              size: 18,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'END OF SEMESTER',
+                style: TextStyle(
+                  color: Colors.red.shade400,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ),
+            if (isDeleting)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.red.shade400,
+                ),
+              )
+            else
+              GestureDetector(
+                onTap: onPressed,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade700,
+                  ),
+                  child: const Text(
+                    'DELETE ALL',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

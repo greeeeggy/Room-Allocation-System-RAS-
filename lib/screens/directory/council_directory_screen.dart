@@ -30,6 +30,7 @@ class _CouncilDirectoryScreenState extends ConsumerState<CouncilDirectoryScreen>
 
   static const _deptFilters = [
     'All',
+    'Eng Council',
     'BSIE',
     'BSASE',
     'BSEE',
@@ -135,8 +136,14 @@ class _CouncilDirectoryScreenState extends ConsumerState<CouncilDirectoryScreen>
                                       final deptUsers = grouped[dept]!;
                                       // Sort within department
                                       deptUsers.sort((a, b) {
-                                        if (a.isCouncilPresident && b.isMayor) return -1;
-                                        if (a.isMayor && b.isCouncilPresident) return 1;
+                                        // EC President first, then council presidents, then mayors
+                                        int roleOrder(UserModel u) {
+                                          if (u.isEngineeringCouncilPresident) return 0;
+                                          if (u.isCouncilPresident) return 1;
+                                          return 2;
+                                        }
+                                        final rCmp = roleOrder(a).compareTo(roleOrder(b));
+                                        if (rCmp != 0) return rCmp;
                                         if (a.isMayor && b.isMayor) {
                                           return (a.courseSection ?? '').compareTo(b.courseSection ?? '');
                                         }
@@ -335,9 +342,11 @@ class _ArchitectUserTile extends StatelessWidget {
         .join()
         .toUpperCase();
 
-    final String position = user.isCouncilPresident
-        ? 'PRESIDENT'
-        : 'MAYOR · ${user.courseSection ?? "N/A"}';
+    final String position = user.isEngineeringCouncilPresident
+        ? 'EC PRESIDENT'
+        : user.isCouncilPresident
+            ? 'PRESIDENT'
+            : 'MAYOR · ${user.courseSection ?? "N/A"}';
 
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 400 + (index * 50).clamp(0, 500)),
@@ -418,8 +427,14 @@ class _ArchitectUserTile extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (user.isCouncilPresident)
-                    const Icon(Icons.verified_rounded, color: AppColors.primary, size: 18),
+                  if (user.isCouncilPresident || user.isEngineeringCouncilPresident)
+                    Icon(
+                      user.isEngineeringCouncilPresident
+                          ? Icons.shield_rounded
+                          : Icons.verified_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
                 ],
               ),
             ),

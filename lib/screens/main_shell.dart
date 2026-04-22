@@ -17,6 +17,7 @@ class MainShell extends ConsumerWidget {
         ? ref.watch(unreadCountProvider)
         : const AsyncValue.data(0);
     final unreadCount = unreadAsync.valueOrNull ?? 0;
+    final isECPresident = user?.isEngineeringCouncilPresident ?? false;
 
     return Scaffold(
       extendBody: true,
@@ -37,6 +38,7 @@ class MainShell extends ConsumerWidget {
                 navigationShell: navigationShell,
                 unreadCount: unreadCount,
                 isCouncilPresident: user?.isCouncilPresident ?? false,
+                isECPresident: isECPresident,
               ),
             ),
           ),
@@ -50,11 +52,13 @@ class _GlassFloatingNavbar extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
   final int unreadCount;
   final bool isCouncilPresident;
+  final bool isECPresident;
 
   const _GlassFloatingNavbar({
     required this.navigationShell,
     required this.unreadCount,
     required this.isCouncilPresident,
+    this.isECPresident = false,
   });
 
   @override
@@ -128,8 +132,16 @@ class _GlassFloatingNavbar extends StatelessWidget {
                         onTap: () => _onTap(0),
                       ),
                       _StylishNavbarItem(
-                        icon: isCouncilPresident ? Icons.groups_rounded : Icons.event_available_rounded,
-                        label: isCouncilPresident ? 'Mayors' : 'Schedule',
+                        icon: isECPresident
+                            ? Icons.restart_alt_rounded
+                            : isCouncilPresident
+                                ? Icons.groups_rounded
+                                : Icons.event_available_rounded,
+                        label: isECPresident
+                            ? 'Reset'
+                            : isCouncilPresident
+                                ? 'Mayors'
+                                : 'Schedule',
                         isSelected: activeIndex == 1,
                         onTap: () => _onTap(1),
                       ),

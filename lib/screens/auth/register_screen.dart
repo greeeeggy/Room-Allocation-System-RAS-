@@ -22,7 +22,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _sectionCtrl = TextEditingController();
 
   String _selectedRole = 'mayor';
-  String _selectedDept = Departments.allFullNames.first;
+  String _selectedDept = Departments.departmentFullNames.first;
   bool _loading = false;
   bool _obscure = true;
   String? _error;
@@ -201,8 +201,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   label: 'Class Mayor',
                                   icon: Icons.school_outlined,
                                   selected: _selectedRole == 'mayor',
-                                  onTap: () =>
-                                      setState(() => _selectedRole = 'mayor'),
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedRole = 'mayor';
+                                      _selectedDept = Departments.departmentFullNames.first;
+                                    });
+                                  },
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -211,14 +215,32 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   label: 'Council President',
                                   icon: Icons.admin_panel_settings_outlined,
                                   selected: _selectedRole == 'council_president',
-                                  onTap: () => setState(
-                                      () => _selectedRole = 'council_president'),
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedRole = 'council_president';
+                                      _selectedDept = Departments.departmentFullNames.first;
+                                    });
+                                  },
                                 ),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 10),
+                          // Engineering Council President — full-width card
+                          _RoleCard(
+                            label: 'Engineering Council President',
+                            icon: Icons.shield_outlined,
+                            selected: _selectedRole == 'engineering_council_president',
+                            onTap: () {
+                              setState(() {
+                                _selectedRole = 'engineering_council_president';
+                                _selectedDept = Departments.engineeringCouncil;
+                              });
+                            },
+                          ),
                           const SizedBox(height: 14),
-                          // Department dropdown (glass styled)
+                          // Department dropdown — hidden for EC President
+                          if (_selectedRole != 'engineering_council_president')
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -264,7 +286,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                       vertical: 14,
                                     ),
                                   ),
-                                  items: Departments.allFullNames
+                                  items: Departments.departmentFullNames
                                       .map((d) => DropdownMenuItem(
                                             value: d,
                                             child: Text(d,

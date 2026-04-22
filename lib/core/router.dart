@@ -20,6 +20,7 @@ import 'package:room_allocation_system/screens/lost_and_found/lost_and_found_scr
 import 'package:room_allocation_system/screens/lost_and_found/lost_item_detail_screen.dart';
 import 'package:room_allocation_system/screens/lost_and_found/post_lost_item_screen.dart';
 import '../screens/mayors/mayor_management_screen.dart';
+import '../screens/admin/end_of_year_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -81,6 +82,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/schedule',
                 builder: (context, state) {
                   final user = ref.watch(authStateProvider).valueOrNull;
+                  if (user?.isEngineeringCouncilPresident == true) {
+                    return const EndOfYearScreen();
+                  }
                   if (user?.isCouncilPresident == true) {
                     return const MayorManagementScreen();
                   }
