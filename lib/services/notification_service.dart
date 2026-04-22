@@ -90,46 +90,84 @@ class NotificationService {
     await batch.commit();
   }
 
-  /// Write a conflict_detected notification to the council president of the
-  /// given department.  No-ops silently if no council president is found so
-  /// that a missing council account never blocks a check-in.
+  /// Write a conflict_detected notification to all relevant parties:
+  /// Both Mayors, both Council Presidents, and the Engineering Council President.
   Future<void> writeConflictNotification({
-    required String department,
-    required String blockIdA,
-    required String blockIdB,
-    required String roomId,
+    required String mayorIdA,
+    required String mayorIdB,
     required String sectionA,
     required String sectionB,
+    required String roomId,
+    required List<String> involvedBlockIds,
   }) async {
-    final presidentsSnap = await _db
-        .collection('users')
-        .where('role', isEqualTo: 'council_president')
-        .where('department', isEqualTo: department)
-        .limit(1)
-        .get();
+    final mayorA = await _db.collection('users').doc(mayorIdA).get();
+    final mayorB = await _db.collection('users').doc(mayorIdB).get();
 
-    if (presidentsSnap.docs.isEmpty) return;
+    final mayorAData = mayorA.data();
+    final mayorBData = mayorB.data();
+    final deptA = mayorAData != null ? mayorAData['department'] as String? : null;
+    final deptB = mayorBData != null ? mayorBData['department'] as String? : null;
 
-    final recipientId = presidentsSnap.docs.first.id;
-    final ref = _db.collection('notifications').doc();
-    await ref.set(NotificationModel(
-      notifId: ref.id,
-      recipientId: recipientId,
-      type: NotificationType.conflictDetected,
-      involvedBlockIds: [blockIdA, blockIdB],
-      roomId: roomId,
-      isRead: false,
-      createdAt: DateTime.now(),
-      sectionA: sectionA,
-      sectionB: sectionB,
-    ).toFirestore());
+    final recipients = <String>{};
+    recipients.add(mayorIdA);
+    recipients.add(mayorIdB);
 
-    // Push Notification
-    await _sendOneSignalNotification(
-      playerIds: [recipientId],
-      title: 'Schedule Conflict!',
-      body: 'Conflict in Room $roomId between $sectionA and $sectionB.',
-    );
+    // Add Council Presidents
+    if (deptA != null) {
+      final cpA = await _getCouncilPresidentId(deptA);
+      if (cpA != null) recipients.add(cpA);
+    }
+    if (deptB != null && deptB != deptA) {
+      final cpB = await _getCouncilPresidentId(deptB);
+      if (cpB != null) recipients.add(cpB);
+    }
+
+    // Add Engineering Council President
+    final ecId = await _getEngineeringCouncilPresidentId();
+    if (ecId != null) recipients.add(ecId);
+
+    final batch = _db.batch();
+    final now = DateTime.now();
+
+    for (final recipientId in recipients) {
+      final ref = _db.collection('notifications').doc();
+      
+      batch.set(ref, NotificationModel(
+        notifId: ref.id,
+        recipientId: recipientId,
+        type: NotificationType.conflictDetected,
+        involvedBlockIds: involvedBlockIds,
+        roomId: roomId,
+        isRead: false,
+        createdAt: now,
+        sectionA: sectionA,
+        sectionB: sectionB,
+      ).toFirestore());
+    }
+
+    await batch.commit();
+
+    // Push Notifications
+    for (final recipientId in recipients) {
+      final isMayor = recipientId == mayorIdA || recipientId == mayorIdB;
+      String title;
+      String body;
+
+      if (isMayor) {
+        final otherSection = recipientId == mayorIdA ? sectionB : sectionA;
+        title = 'Schedule Conflict!';
+        body = 'Conflict detected in Room $roomId between your section and $otherSection. Consult your Council President and Chairperson.';
+      } else {
+        title = 'Conflict Reported';
+        body = '$sectionA and $sectionB have a conflict at room $roomId. Mediation required.';
+      }
+      
+      await _sendOneSignalNotification(
+        playerIds: [recipientId],
+        title: title,
+        body: body,
+      );
+    }
   }
 
   /// Write a conflict_resolved notification.  Finds the original
@@ -143,9 +181,6 @@ class NotificationService {
     required String sectionB,
   }) async {
     // Find the original conflict notification.
-    // NOTE: This query currently ignores 'recipientId' which means it will hit
-    // a "Permission Denied" error for 'mayor' roles under the current rules.
-    // In a prod environment, this should include .where('recipientId', isEqualTo: authId)
     final originalSnap = await _db
         .collection('notifications')
         .where('type', isEqualTo: 'conflict_detected')
@@ -194,7 +229,8 @@ class NotificationService {
       body: 'The conflict in Room $roomId has been resolved.',
     );
   }
-  /// Write static schedule conflict notifications to both involved mayors.
+
+  /// Write static schedule conflict notifications to all relevant parties.
   Future<void> writeStaticConflictNotification({
     required String mayorIdA,
     required String mayorIdB,
@@ -202,50 +238,92 @@ class NotificationService {
     required String sectionB,
     required String roomId,
   }) async {
+    final mayorA = await _db.collection('users').doc(mayorIdA).get();
+    final mayorB = await _db.collection('users').doc(mayorIdB).get();
+
+    final mayorAData = mayorA.data();
+    final mayorBData = mayorB.data();
+    final deptA = mayorAData != null ? mayorAData['department'] as String? : null;
+    final deptB = mayorBData != null ? mayorBData['department'] as String? : null;
+
+    final recipients = <String>{};
+    recipients.add(mayorIdA);
+    recipients.add(mayorIdB);
+
+    if (deptA != null) {
+      final cpA = await _getCouncilPresidentId(deptA);
+      if (cpA != null) recipients.add(cpA);
+    }
+    if (deptB != null && deptB != deptA) {
+      final cpB = await _getCouncilPresidentId(deptB);
+      if (cpB != null) recipients.add(cpB);
+    }
+    final ecId = await _getEngineeringCouncilPresidentId();
+    if (ecId != null) recipients.add(ecId);
+
     final batch = _db.batch();
+    final now = DateTime.now();
 
-    // Notif for Mayor A
-    final refA = _db.collection('notifications').doc();
-    batch.set(
-      refA,
-      NotificationModel(
-        notifId: refA.id,
-        recipientId: mayorIdA,
-        type: NotificationType.staticScheduleConflict,
-        involvedBlockIds: [], // Empty for static conflicts as documents may not exist yet
-        roomId: roomId,
-        isRead: false,
-        createdAt: DateTime.now(),
-        sectionA: sectionA,
-        sectionB: sectionB,
-      ).toFirestore(),
-    );
-
-    // Notif for Mayor B
-    final refB = _db.collection('notifications').doc();
-    batch.set(
-      refB,
-      NotificationModel(
-        notifId: refB.id,
-        recipientId: mayorIdB,
+    for (final recipientId in recipients) {
+      final ref = _db.collection('notifications').doc();
+      
+      batch.set(ref, NotificationModel(
+        notifId: ref.id,
+        recipientId: recipientId,
         type: NotificationType.staticScheduleConflict,
         involvedBlockIds: [],
         roomId: roomId,
         isRead: false,
-        createdAt: DateTime.now(),
-        sectionA: sectionB,
-        sectionB: sectionA,
-      ).toFirestore(),
-    );
+        createdAt: now,
+        sectionA: sectionA,
+        sectionB: sectionB,
+      ).toFirestore());
+    }
 
     await batch.commit();
 
-    // Push Notifications for both mayors
-    await _sendOneSignalNotification(
-      playerIds: [mayorIdA, mayorIdB],
-      title: 'Static Schedule Conflict',
-      body: 'A conflict exists in the master schedule for Room $roomId.',
-    );
+    // Push Notifications
+    for (final recipientId in recipients) {
+      final isMayor = recipientId == mayorIdA || recipientId == mayorIdB;
+      String title;
+      String body;
+
+      if (isMayor) {
+        final otherSection = recipientId == mayorIdA ? sectionB : sectionA;
+        title = 'Static Conflict Found';
+        body = 'Conflict detected: Room $roomId is currently requested by both your section and $otherSection. Please coordinate with your Council President and the Engineering Council, then consult the Chairperson to resolve the overlap.';
+      } else {
+        title = 'Master Schedule Conflict';
+        body = '$sectionA and $sectionB have a static conflict at room $roomId. Please mediate and resolve this as soon as possible.';
+      }
+
+      await _sendOneSignalNotification(
+        playerIds: [recipientId],
+        title: title,
+        body: body,
+      );
+    }
+  }
+
+  // ----- HELPERS -----
+
+  Future<String?> _getCouncilPresidentId(String department) async {
+    final snap = await _db
+        .collection('users')
+        .where('role', isEqualTo: 'council_president')
+        .where('department', isEqualTo: department)
+        .limit(1)
+        .get();
+    return snap.docs.isEmpty ? null : snap.docs.first.id;
+  }
+
+  Future<String?> _getEngineeringCouncilPresidentId() async {
+    final snap = await _db
+        .collection('users')
+        .where('role', isEqualTo: 'engineering_council_president')
+        .limit(1)
+        .get();
+    return snap.docs.isEmpty ? null : snap.docs.first.id;
   }
 
   /// Write a lost_item_posted notification to all users except the poster.

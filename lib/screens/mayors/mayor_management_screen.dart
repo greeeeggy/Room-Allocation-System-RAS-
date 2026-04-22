@@ -487,22 +487,22 @@ class _EmptyMayors extends StatelessWidget {
               size: 80, color: Colors.black.withOpacity(0.04)),
           const SizedBox(height: 20),
           Text(
-            'NULL_AUTHORIZATIONS',
+            'NO AUTHORIZED MAYORS',
             style: TextStyle(
               color: Colors.black.withOpacity(0.12),
               fontSize: 12,
               fontWeight: FontWeight.w900,
-              letterSpacing: 4,
+              letterSpacing: 2,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            'TAP + TO AUTHORIZE A MAYOR',
+            'TAP THE + BUTTON TO AUTHORIZE A CLASS MAYOR'.toUpperCase(),
             style: TextStyle(
               color: Colors.black.withOpacity(0.08),
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              letterSpacing: 2,
+              letterSpacing: 1,
             ),
           ),
         ],

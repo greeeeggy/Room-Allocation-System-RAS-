@@ -748,22 +748,23 @@ class EmptyDay extends StatelessWidget {
           Icon(Icons.event_busy_rounded, size: 80, color: Colors.black.withOpacity(0.04)),
           const SizedBox(height: 20),
           Text(
-            'NULL_SCHEDULE_DATA',
+            'YOUR SCHEDULE IS EMPTY',
             style: TextStyle(
               color: Colors.black.withOpacity(0.12),
               fontSize: 12,
               fontWeight: FontWeight.w900,
-              letterSpacing: 4,
+              letterSpacing: 2,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            'NO CLASSES DETECTED FOR $day'.toUpperCase(),
+            'Plan your semester by adding your first class block.'.toUpperCase(),
+            textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.black.withOpacity(0.08),
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
+              letterSpacing: 1,
             ),
           ),
         ],

@@ -318,13 +318,14 @@ class ScheduleService {
 
       // ── Write conflict notification (fire-and-forget; non-fatal) ─────
       try {
+        final occupyingMayorId = occupyingDoc.exists ? occupyingDoc['mayorId'] as String? : 'unknown';
         await _notifService.writeConflictNotification(
-          department: mayorDepartment,
-          blockIdA: blockId,
-          blockIdB: occupyingBlockId,
-          roomId: roomId,
+          mayorIdA: mayorId,
+          mayorIdB: occupyingMayorId ?? 'unknown',
           sectionA: mayorSection,
           sectionB: occupyingSection,
+          roomId: roomId,
+          involvedBlockIds: [blockId, occupyingBlockId],
         );
       } catch (_) {
         // Notification failure must never block the conflict UX.

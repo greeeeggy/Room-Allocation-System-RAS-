@@ -477,12 +477,12 @@ class _ArchitectEmptyState extends StatelessWidget {
           Icon(Icons.person_off_outlined, size: 80, color: Colors.black.withOpacity(0.04)),
           const SizedBox(height: 20),
           Text(
-            'INDEX EMPTY',
+            'DIRECTORY EMPTY',
             style: GoogleFonts.outfit(
               color: Colors.black.withOpacity(0.12),
               fontSize: 12,
               fontWeight: FontWeight.w900,
-              letterSpacing: 4,
+              letterSpacing: 2,
             ),
           ),
           const SizedBox(height: 4),

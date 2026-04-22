@@ -112,7 +112,12 @@ class NotificationScreen extends ConsumerWidget {
                               const _TimelineHeading(label: 'TODAY'),
                               SliverList(
                                 delegate: SliverChildBuilderDelegate(
-                                  (_, i) => _NotifArchitectCard(notif: today[i], index: i),
+                                  (_, i) => _NotifArchitectCard(
+                                    notif: today[i],
+                                    index: i,
+                                    currentUserId: user?.userId ?? '',
+                                    isPresident: user?.isCouncilPresident == true || user?.isEngineeringCouncilPresident == true,
+                                  ),
                                   childCount: today.length,
                                 ),
                               ),
@@ -121,7 +126,12 @@ class NotificationScreen extends ConsumerWidget {
                               const _TimelineHeading(label: 'YESTERDAY'),
                               SliverList(
                                 delegate: SliverChildBuilderDelegate(
-                                  (_, i) => _NotifArchitectCard(notif: yesterday[i], index: i + today.length),
+                                  (_, i) => _NotifArchitectCard(
+                                    notif: yesterday[i],
+                                    index: i + today.length,
+                                    currentUserId: user?.userId ?? '',
+                                    isPresident: user?.isCouncilPresident == true || user?.isEngineeringCouncilPresident == true,
+                                  ),
                                   childCount: yesterday.length,
                                 ),
                               ),
@@ -130,7 +140,12 @@ class NotificationScreen extends ConsumerWidget {
                               const _TimelineHeading(label: 'EARLIER'),
                               SliverList(
                                 delegate: SliverChildBuilderDelegate(
-                                  (_, i) => _NotifArchitectCard(notif: earlier[i], index: i + today.length + yesterday.length),
+                                  (_, i) => _NotifArchitectCard(
+                                    notif: earlier[i],
+                                    index: i + today.length + yesterday.length,
+                                    currentUserId: user?.userId ?? '',
+                                    isPresident: user?.isCouncilPresident == true || user?.isEngineeringCouncilPresident == true,
+                                  ),
                                   childCount: earlier.length,
                                 ),
                               ),
@@ -267,8 +282,15 @@ class _TimelineHeading extends StatelessWidget {
 class _NotifArchitectCard extends ConsumerWidget {
   final NotificationModel notif;
   final int index;
+  final String currentUserId;
+  final bool isPresident;
 
-  const _NotifArchitectCard({required this.notif, required this.index});
+  const _NotifArchitectCard({
+    required this.notif,
+    required this.index,
+    required this.currentUserId,
+    required this.isPresident,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -282,9 +304,18 @@ class _NotifArchitectCard extends ConsumerWidget {
         title = 'ROOM CONFLICT';
         color = AppColors.occupied;
         icon = Icons.warning_amber_rounded;
-        body = notif.sectionA != null && notif.sectionB != null
-            ? '${notif.sectionA} AND ${notif.sectionB} ARE CLAIMING ROOM ${notif.roomId}.'
-            : 'A CONFLICT WAS DETECTED FOR ROOM ${notif.roomId}.';
+        if (isPresident) {
+          body = notif.sectionA != null && notif.sectionB != null
+              ? '${notif.sectionA} AND ${notif.sectionB} HAVE A SCHEDULE CONFLICT AT ROOM ${notif.roomId}. PLEASE COORDINATE WITH THE CHAIRPERSON TO MEDIATE AND RESOLVE THIS AS SOON AS POSSIBLE.'
+              : 'A CONFLICT WAS DETECTED FOR ROOM ${notif.roomId}. PLEASE MEDIATE AS SOON AS POSSIBLE.';
+        } else {
+          // Mayor view
+          final otherSection = (notif.sectionA != null && notif.sectionA != 'N/A') 
+              ? notif.sectionB 
+              : notif.sectionA; 
+          // Note: Logic for 'otherSection' is simplified here, but usually one matches the mayor's own section.
+          body = 'CONFLICT DETECTED: ROOM ${notif.roomId} IS CURRENTLY REQUESTED BY BOTH YOUR SECTION AND $otherSection. PLEASE COORDINATE WITH YOUR COUNCIL PRESIDENT AND THE ENGINEERING COUNCIL, THEN CONSULT THE CHAIRPERSON TO RESOLVE THE OVERLAP.';
+        }
         break;
       case NotificationType.conflictResolved:
         title = 'CONFLICT RESOLVED';
@@ -298,7 +329,12 @@ class _NotifArchitectCard extends ConsumerWidget {
         title = 'SCHEDULE CLASH';
         color = AppColors.soon;
         icon = Icons.event_busy_outlined;
-        body = 'YOU HAVE A SCHEDULE CONFLICT WITH ${notif.sectionB} FOR ROOM ${notif.roomId}.';
+        if (isPresident) {
+          body = '${notif.sectionA} AND ${notif.sectionB} HAVE A SCHEDULE CONFLICT AT ROOM ${notif.roomId}. PLEASE COORDINATE WITH THE CHAIRPERSON TO MEDIATE AND RESOLVE THIS AS SOON AS POSSIBLE.';
+        } else {
+          final otherSection = notif.sectionB ?? 'ANOTHER SECTION';
+          body = 'CONFLICT DETECTED: ROOM ${notif.roomId} IS CURRENTLY REQUESTED BY BOTH YOUR SECTION AND $otherSection. PLEASE COORDINATE WITH YOUR COUNCIL PRESIDENT AND THE ENGINEERING COUNCIL, THEN CONSULT THE CHAIRPERSON TO RESOLVE THE OVERLAP.';
+        }
         break;
       case NotificationType.lostItemPosted:
         title = 'LOST ITEM FOUND';
