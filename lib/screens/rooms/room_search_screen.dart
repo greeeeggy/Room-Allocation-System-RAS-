@@ -403,8 +403,10 @@ class _ArchitectTile extends StatelessWidget {
         );
       },
       child: GestureDetector(
-        onTap: () => context.push('/search/room/${room.roomId}'),
-        child: Container(
+        onTap: room.isOffice ? null : () => context.push('/search/room/${room.roomId}'),
+        child: Opacity(
+          opacity: room.isOffice ? 0.6 : 1.0,
+          child: Container(
           margin: const EdgeInsets.only(bottom: 12),
           height: 95, // Smaller height
           child: Stack(
@@ -413,8 +415,8 @@ class _ArchitectTile extends StatelessWidget {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F1F1),
-                    border: Border.all(color: Colors.black.withOpacity(0.08)),
+                    color: room.isOffice ? const Color(0xFFE8E8E8) : const Color(0xFFF1F1F1),
+                    border: Border.all(color: Colors.black.withOpacity(room.isOffice ? 0.04 : 0.08)),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.04),
@@ -508,8 +510,9 @@ class _ArchitectTile extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Color _getStatusColor(RoomStatus s) {
     switch (s) {
