@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../models/room_model.dart';
@@ -25,87 +26,130 @@ class DashboardScreen extends ConsumerWidget {
     final nextClass = ref.watch(nextClassProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                'assets/images/RAS_logo.png',
-                height: 32,
-                errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image),
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                AppStrings.appName,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+      extendBody: true,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.primary.withOpacity(0.05),
+              AppColors.surface,
+            ],
+          ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.cloud_upload_outlined),
-            tooltip: 'Seed Rooms',
-            onPressed: () async {
-              await ref.read(roomServiceProvider).seedRooms();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Rooms seeded successfully!')),
-                );
-              }
+        child: SafeArea(
+          bottom: false,
+          child: RefreshIndicator(
+            onRefresh: () async {
+              try {
+                await StatusEngine().runOnAppLoad();
+              } catch (_) {}
             },
-          ),
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Welcome + next class card
-          userAsync.when(
-            data: (user) => user == null
-                ? const SizedBox()
-                : _WelcomeCard(
-                    name: user.name,
-                    section: user.courseSection,
-                    nextClass: nextClass,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // Custom App Bar
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Row(
+                      children: [
+                        Hero(
+                          tag: 'app_logo',
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.asset(
+                              'assets/images/RAS_logo.png',
+                              height: 40,
+                              errorBuilder: (context, error, stackTrace) => 
+                                  const Icon(Icons.room_preferences, color: AppColors.primary, size: 32),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                AppStrings.appName,
+                                style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 22,
+                                  color: AppColors.primary,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.cloud_upload_outlined, color: AppColors.primary),
+                          onPressed: () async {
+                            await ref.read(roomServiceProvider).seedRooms();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Rooms seeded successfully!')),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-            loading: () => const SizedBox(height: 72),
-            error: (_, __) => const SizedBox(),
-          ),
+                ),
 
-          // Floor filter tabs
-          _FloorFilterTabs(
-            selected: selectedFloor,
-            onSelect: (f) =>
-                ref.read(selectedFloorProvider.notifier).state = f,
-          ),
+                // Welcome card
+                SliverToBoxAdapter(
+                  child: userAsync.when(
+                    data: (user) => user == null
+                        ? const SizedBox()
+                        : _WelcomeCard(
+                            name: user.name,
+                            section: user.courseSection,
+                            nextClass: nextClass,
+                          ),
+                    loading: () => const SizedBox(height: 120),
+                    error: (_, __) => const SizedBox(),
+                  ),
+                ),
 
-          // Legend
-          const _StatusLegend(),
+                // Floor filter tabs & Legend (now in a simple adapter to avoid sliver geometry issues)
+                SliverToBoxAdapter(
+                  child: Container(
+                    color: AppColors.surface,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _FloorFilterTabs(
+                          selected: selectedFloor,
+                          onSelect: (f) =>
+                              ref.read(selectedFloorProvider.notifier).state = f,
+                        ),
+                        const _StatusLegend(),
+                        const SizedBox(height: 12),
+                      ],
+                    ),
+                  ),
+                ),
 
-          // Room grid
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () async {
-                try {
-                  await StatusEngine().runOnAppLoad();
-                } catch (_) {}
-              },
-              child: roomsAsync.when(
-                data: (rooms) => rooms.isEmpty
-                    ? const _EmptyState()
-                    : _RoomGrid(rooms: rooms),
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
-              ),
+                // Room grid / segments
+                roomsAsync.when(
+                  data: (rooms) => rooms.isEmpty
+                      ? const SliverFillRemaining(child: _EmptyState())
+                      : _FloorGroupedGrid(rooms: rooms, selectedFloor: selectedFloor),
+                  loading: () => const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator())),
+                  error: (e, _) => SliverFillRemaining(
+                      child: Center(child: Text('Error: $e'))),
+                ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 120)),
+              ],
             ),
           ),
-        ],
+        ),
       ),
       floatingActionButton: const _ClassyFloatingSettings(),
     );
@@ -113,6 +157,7 @@ class DashboardScreen extends ConsumerWidget {
 }
 
 class _ClassyFloatingSettings extends StatelessWidget {
+
   const _ClassyFloatingSettings();
 
   @override
@@ -174,25 +219,81 @@ class _WelcomeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      color: AppColors.primary,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Welcome, $name',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600)),
-          if (section != null)
-            Text(section!,
-                style: const TextStyle(color: Colors.white70, fontSize: 13)),
-          if (nextClass != null) ...[
-            const SizedBox(height: 12),
-            _MyNextClassCard(block: nextClass!),
-          ],
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hey, $name!',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            if (section != null)
+                              Text(
+                                section!,
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (nextClass != null) ...[
+                    const SizedBox(height: 20),
+                    _MyNextClassCard(block: nextClass!),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -228,14 +329,15 @@ class _MyNextClassCardState extends ConsumerState<_MyNextClassCard> {
     final block = widget.block;
     final minutesUntil = TimeUtils.minutesUntil(block.startTime);
     final isActive = TimeUtils.isNowBetween(block.startTime, block.endTime);
-    final canCheckIn = block.checkInStatus == CheckInStatus.pending &&
+    final checkInStatus = block.checkInStatus;
+    final canCheckIn = checkInStatus == CheckInStatus.pending &&
         (minutesUntil <= 15);
 
     String timeLabel;
     if (isActive) {
-      timeLabel = 'Until ${TimeUtils.toDisplayTime(block.endTime)}';
+      timeLabel = 'Ends at ${TimeUtils.toDisplayTime(block.endTime)}';
     } else if (minutesUntil > 0) {
-      timeLabel = 'In $minutesUntil min · ${TimeUtils.toDisplayTime(block.startTime)}';
+      timeLabel = 'Starts in $minutesUntil min (${TimeUtils.toDisplayTime(block.startTime)})';
     } else {
       timeLabel = TimeUtils.toDisplayTime(block.startTime);
     }
@@ -244,55 +346,86 @@ class _MyNextClassCardState extends ConsumerState<_MyNextClassCard> {
       onTap: canCheckIn
           ? () => context.push('/dashboard/checkin/${block.blockId}')
           : (block.roomId == 'unassigned' ? null : () => context.push('/dashboard/room/${block.roomId}')),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white24),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.class_outlined, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(block.subject,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14)),
-                  Text(block.roomId == 'unassigned' ? 'No assigned room · $timeLabel' : '${block.roomId} · $timeLabel',
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 12)),
-                ],
-              ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white30),
             ),
-            if (canCheckIn)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 24),
                 ),
-                child: Text(
-                  'Check In',
-                  style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        block.subject,
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        block.roomId == 'unassigned' ? 'TBA · $timeLabel' : '${block.roomId} · $timeLabel',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              )
-            else
-              const Icon(Icons.chevron_right, color: Colors.white70),
-          ],
+                if (canCheckIn)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      'Check In',
+                      style: GoogleFonts.outfit(
+                        color: AppColors.primary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  )
+                else
+                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 16),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
+
 
 class _FloorFilterTabs extends StatelessWidget {
   final int selected;
@@ -302,14 +435,15 @@ class _FloorFilterTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 44,
+      height: 54,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         children: [
-          _FloorChip(label: 'All', value: 0, selected: selected, onSelect: onSelect),
+          _FloorChip(label: 'All Floors', value: 0, selected: selected, onSelect: onSelect),
           for (int f = 6; f >= 1; f--)
-            _FloorChip(label: '${f}F', value: f, selected: selected, onSelect: onSelect),
+            _FloorChip(label: 'Floor $f', value: f, selected: selected, onSelect: onSelect),
         ],
       ),
     );
@@ -333,22 +467,32 @@ class _FloorChip extends StatelessWidget {
     return GestureDetector(
       onTap: () => onSelect(value),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? AppColors.primary : AppColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(25),
           border: Border.all(
-              color: isSelected ? AppColors.primary : Colors.grey.shade300),
+            color: isSelected ? AppColors.primary : AppColors.primary.withOpacity(0.25),
+            width: 1,
+          ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ] : null,
         ),
         child: Center(
           child: Text(
             label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey.shade700,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+            style: GoogleFonts.outfit(
+              color: isSelected ? Colors.white : AppColors.primary.withOpacity(0.7),
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+              fontSize: 14,
             ),
           ),
         ),
@@ -357,20 +501,21 @@ class _FloorChip extends StatelessWidget {
   }
 }
 
+
 class _StatusLegend extends StatelessWidget {
   const _StatusLegend();
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       child: Row(
         children: [
-          _LegendDot(color: AppColors.available, label: 'Available'),
-          const SizedBox(width: 12),
-          _LegendDot(color: AppColors.occupied, label: 'Occupied'),
-          const SizedBox(width: 12),
-          _LegendDot(color: AppColors.soon, label: 'Soon'),
+          _LegendDot(gradient: AppColors.availableGradient, label: 'Available'),
+          const SizedBox(width: 16),
+          _LegendDot(gradient: AppColors.occupiedGradient, label: 'Occupied'),
+          const SizedBox(width: 16),
+          _LegendDot(gradient: AppColors.soonGradient, label: 'Soon'),
         ],
       ),
     );
@@ -378,128 +523,235 @@ class _StatusLegend extends StatelessWidget {
 }
 
 class _LegendDot extends StatelessWidget {
-  final Color color;
+  final LinearGradient gradient;
   final String label;
-  const _LegendDot({required this.color, required this.label});
+  const _LegendDot({required this.gradient, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-      ],
-    );
-  }
-}
-
-class _RoomGrid extends StatelessWidget {
-  final List<RoomModel> rooms;
-  const _RoomGrid({required this.rooms});
-
-  Color _statusColor(RoomModel room) {
-    if (room.isOffice) return Colors.grey.shade400;
-    switch (room.status) {
-      case RoomStatus.occupied:
-        return AppColors.occupied;
-      case RoomStatus.soon:
-        return AppColors.soon;
-      case RoomStatus.available:
-      case RoomStatus.noClass:
-        return AppColors.available;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-      physics: const AlwaysScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 1,
-      ),
-      itemCount: rooms.length,
-      itemBuilder: (_, i) {
-        final room = rooms[i];
-        final isOffice = room.isOffice;
-        final isLab = room.isLab;
-        final tile = Container(
+          width: 12,
+          height: 12,
           decoration: BoxDecoration(
-            color: _statusColor(room),
-            borderRadius: BorderRadius.circular(10),
+            gradient: gradient,
+            shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: gradient.colors.last.withOpacity(0.3),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               )
             ],
           ),
-          child: Stack(
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FloorGroupedGrid extends StatelessWidget {
+  final List<RoomModel> rooms;
+  final int selectedFloor;
+  const _FloorGroupedGrid({required this.rooms, required this.selectedFloor});
+
+  @override
+  Widget build(BuildContext context) {
+    // Group rooms by floor
+    final groupedRooms = <int, List<RoomModel>>{};
+    for (final room in rooms) {
+      groupedRooms.putIfAbsent(room.floor, () => []).add(room);
+    }
+    
+    // Sort floors descending
+    final sortedFloors = groupedRooms.keys.toList()..sort((a, b) => b.compareTo(a));
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final floor = sortedFloors[index];
+          final floorRooms = groupedRooms[floor] ?? [];
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Text(
-                  room.roomNumber,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              if (isLab)
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'LAB',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 7,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                child: Row(
+                  children: [
+                    Text(
+                      'Floor $floor',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                  ),
-                ),
-              Positioned(
-                bottom: 4,
-                left: 4,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (room.features.contains(RoomFeatures.blackboard))
-                      const Icon(Icons.square, size: 8, color: Colors.white),
-                    if (room.features.contains(RoomFeatures.whiteboard))
-                      const Icon(Icons.square_outlined, size: 8, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withOpacity(0.2),
+                              AppColors.primary.withOpacity(0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
+              GridView.builder(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.85, 
+                ),
+                itemCount: floorRooms.length,
+                itemBuilder: (_, i) => _RoomTile(room: floorRooms[i]),
+              ),
+              if (index < sortedFloors.length - 1)
+                const SizedBox(height: 8),
             ],
+          );
+        },
+        childCount: sortedFloors.length,
+      ),
+    );
+  }
+}
+
+class _RoomTile extends StatelessWidget {
+  final RoomModel room;
+  const _RoomTile({required this.room});
+
+  LinearGradient _statusGradient() {
+    if (room.isOffice) return AppColors.officeGradient;
+    switch (room.status) {
+      case RoomStatus.occupied:
+        return AppColors.occupiedGradient;
+      case RoomStatus.soon:
+        return AppColors.soonGradient;
+      case RoomStatus.available:
+      case RoomStatus.noClass:
+        return AppColors.availableGradient;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isOffice = room.isOffice;
+    final isLab = room.isLab;
+
+    final content = Container(
+      decoration: BoxDecoration(
+        gradient: _statusGradient(),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Background icon pattern
+          Positioned(
+            right: -10,
+            bottom: -5,
+            child: Icon(
+              isOffice ? Icons.business_rounded : (isLab ? Icons.biotech_rounded : Icons.meeting_room_rounded),
+              size: 48,
+              color: Colors.white.withOpacity(0.1),
+            ),
           ),
-        );
+          
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      room.roomNumber,
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        letterSpacing: -0.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+                if (isLab)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'LAB',
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (room.features.contains(RoomFeatures.blackboard))
+                      Icon(Icons.border_all_rounded, size: 10, color: Colors.white.withOpacity(0.9)),
+                    if (room.features.contains(RoomFeatures.whiteboard))
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Icon(Icons.rectangle_outlined, size: 10, color: Colors.white.withOpacity(0.9)),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
 
-        if (isOffice) return tile;
+    if (isOffice) {
+      return content;
+    }
 
-        return GestureDetector(
-          onTap: () => context.push('/dashboard/room/${room.roomId}'),
-          child: tile,
-        );
+    return GestureDetector(
+      onTap: () {
+        context.push('/dashboard/room/${room.roomId}');
       },
+      child: content,
     );
   }
 }
@@ -509,24 +761,29 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: const SizedBox(
-        height: 300,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.meeting_room_outlined, size: 64, color: Colors.grey),
-              SizedBox(height: 12),
-              Text('No rooms found.',
-                  style: TextStyle(color: Colors.grey, fontSize: 16)),
-              SizedBox(height: 4),
-              Text('Tap the upload icon in the app bar to seed rooms.',
-                  style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.meeting_room_outlined, size: 80, color: AppColors.primary.withOpacity(0.2)),
+          const SizedBox(height: 20),
+          Text(
+            'No Rooms Found',
+            style: GoogleFonts.outfit(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            'Try seeding rooms using the icon above.',
+            style: GoogleFonts.outfit(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }

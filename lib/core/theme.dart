@@ -25,11 +25,34 @@ class AppColors {
   static const Color glassBackground = Color(0x1AFFFFFF);
   static const Color glassBorder     = Color(0x33FFFFFF);
 
+  // Status Gradients (Theme Factory)
+  static const LinearGradient availableGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF81C784), Color(0xFF4CAF50)],
+  );
+  static const LinearGradient occupiedGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFE57373), Color(0xFFD32F2F)],
+  );
+  static const LinearGradient soonGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFB74D), Color(0xFFF57C00)],
+  );
+  static const LinearGradient officeGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFBDBDBD), Color(0xFF757575)],
+  );
+
   // Text
   static const Color textPrimary   = Color(0xFF1A0408);
   static const Color textSecondary = Color(0xFF6B7280);
   static const Color textOnDark    = Color(0xFFEBD4CB); // Almond Silk
 }
+
 
 class AppTheme {
   static ThemeData get light {
