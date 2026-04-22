@@ -706,7 +706,7 @@ class _RoomTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (isLab)
+                if (isLab || isOffice)
                   Container(
                     margin: const EdgeInsets.only(bottom: 4),
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -715,7 +715,7 @@ class _RoomTile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      'LAB',
+                      isLab ? 'LAB' : 'OFFICE',
                       style: GoogleFonts.outfit(
                         color: Colors.white,
                         fontSize: 8,

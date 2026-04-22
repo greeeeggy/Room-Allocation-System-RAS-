@@ -87,10 +87,34 @@ class _RoomDetailBody extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Room ${room.roomNumber}',
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    Text(
+                      'Room ${room.roomNumber}',
+                      style: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    if (room.isOffice) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.grey.shade400),
+                        ),
+                        child: const Text(
+                          'OFFICE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text('Floor ${room.floor}',
@@ -637,6 +661,13 @@ class _RoomStatusBadge extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (room.isOffice) {
+      return const _BadgeContainer(
+        color: Colors.grey,
+        label: 'Staff Office',
+      );
+    }
+
     if (room.status == RoomStatus.available || room.currentOccupantBlockId == null) {
       String label = 'Available';
       if (room.status == RoomStatus.occupied) label = 'Occupied';

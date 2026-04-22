@@ -172,53 +172,55 @@ class _MetropolisHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'SYSTEM',
-                  style: GoogleFonts.outfit(
-                    color: AppColors.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 6,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'NOTIFICATIONS',
-                  style: GoogleFonts.outfit(
-                    color: const Color(0xFF1A1A1A),
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                    height: 1.0,
-                    letterSpacing: -1,
-                  ),
-                ),
-              ],
+          Text(
+            'SYSTEM',
+            style: GoogleFonts.outfit(
+              color: AppColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 6,
             ),
           ),
+          const SizedBox(height: 2),
+          Text(
+            'NOTIFICATIONS',
+            style: GoogleFonts.outfit(
+              color: const Color(0xFF1A1A1A),
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              height: 1.0,
+              letterSpacing: -1,
+            ),
+          ),
+          const SizedBox(height: 15),
           if (hasUnread)
             GestureDetector(
               onTap: onMarkAllRead,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                  color: AppColors.primary.withOpacity(0.05),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.1)),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text(
-                  'MARK ALL READ',
-                  style: GoogleFonts.outfit(
-                    color: AppColors.primary,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.done_all_rounded, size: 12, color: AppColors.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      'MARK ALL AS READ',
+                      style: GoogleFonts.outfit(
+                        color: AppColors.primary,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -395,14 +397,41 @@ class _NotifArchitectCard extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          Text(
-                            _formatTime(notif.createdAt).toUpperCase(),
-                            style: GoogleFonts.outfit(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.black26,
-                              letterSpacing: 0.5,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _formatTime(notif.createdAt).toUpperCase(),
+                                style: GoogleFonts.outfit(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.black26,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              if (!notif.isRead)
+                                GestureDetector(
+                                  onTap: () {
+                                    ref.read(notificationServiceProvider).markAsRead(notif.notifId);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: color.withOpacity(0.2)),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'MARK AS READ',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w900,
+                                        color: color,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ],
                       ),

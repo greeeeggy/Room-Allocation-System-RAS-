@@ -141,7 +141,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           const SizedBox(height: 28),
                           _GlassField(
                             controller: _nameCtrl,
-                            label: 'Fast name',
+                            label: 'Last name',
                             hint: 'Full name',
                             icon: Icons.person_outline,
                             textCapitalization: TextCapitalization.words,
