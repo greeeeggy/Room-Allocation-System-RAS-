@@ -1,1 +1,43 @@
-{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"flutter":{"platforms":{"android":{"default":{"projectId":"room-allocation-system-e6eb0","appId":"1:50723107153:android:0676b4458e536266e76370","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"room-allocation-system-e6eb0","configurations":{"android":"1:50723107153:android:0676b4458e536266e76370","ios":"1:50723107153:ios:f1efcc0e64811999e76370"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "room-allocation-system-e6eb0",
+          "appId": "1:50723107153:android:0676b4458e536266e76370",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "room-allocation-system-e6eb0",
+          "configurations": {
+            "android": "1:50723107153:android:0676b4458e536266e76370",
+            "ios": "1:50723107153:ios:f1efcc0e64811999e76370",
+            "macos": "1:50723107153:ios:f1efcc0e64811999e76370",
+            "web": "1:50723107153:web:dfd7c30dc5fbbc98e76370",
+            "windows": "1:50723107153:web:f2557e4302176bf6e76370"
+          }
+        }
+      }
+    }
+  }
+}

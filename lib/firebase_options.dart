@@ -67,21 +67,21 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyD89BZZk-f2FUEKFbCbxekP1gmLz4cXNJE',
-    appId: '1:1077283760082:ios:1b96cc218dc2fd4eb60a0b',
-    messagingSenderId: '1077283760082',
-    projectId: 'room-availability-app-8371b',
-    storageBucket: 'room-availability-app-8371b.firebasestorage.app',
-    iosClientId: '1077283760082-jkes2vq0i10li5b6n2ltvvl519jq09sn.apps.googleusercontent.com',
-    iosBundleId: 'com.yourname.roomAvailabilityApp',
+    apiKey: 'AIzaSyCx8NFMfVPDepfT9ArZQFwM7ZAMc2fGuII',
+    appId: '1:50723107153:ios:f1efcc0e64811999e76370',
+    messagingSenderId: '50723107153',
+    projectId: 'room-allocation-system-e6eb0',
+    storageBucket: 'room-allocation-system-e6eb0.firebasestorage.app',
+    iosBundleId: 'com.yourname.room-allocation-system',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDJIHAmk9mndhfZ1DgM6_YiQb8VZFoqm8M',
-    appId: '1:1077283760082:web:08d357740b54a8dab60a0b',
-    messagingSenderId: '1077283760082',
-    projectId: 'room-availability-app-8371b',
-    authDomain: 'room-availability-app-8371b.firebaseapp.com',
-    storageBucket: 'room-availability-app-8371b.firebasestorage.app',
+    apiKey: 'AIzaSyCKYhn6K4xFGkPQlEK-nISJdAGfRpiEueA',
+    appId: '1:50723107153:web:f2557e4302176bf6e76370',
+    messagingSenderId: '50723107153',
+    projectId: 'room-allocation-system-e6eb0',
+    authDomain: 'room-allocation-system-e6eb0.firebaseapp.com',
+    storageBucket: 'room-allocation-system-e6eb0.firebasestorage.app',
   );
+
 }

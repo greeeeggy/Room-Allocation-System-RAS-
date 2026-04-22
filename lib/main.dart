@@ -13,7 +13,11 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
   // Initialize OneSignal Push Notifications
-  await OneSignalService().init();
+  try {
+    await OneSignalService().init();
+  } catch (e) {
+    debugPrint('OneSignal initialization failed: $e');
+  }
 
   // Run auto-release and no-show detection on startup
   final statusEngine = StatusEngine();

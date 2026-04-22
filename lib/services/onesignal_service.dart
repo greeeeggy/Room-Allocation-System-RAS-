@@ -16,22 +16,34 @@ class OneSignalService {
   Future<void> init() async {
     if (_isInitialized) return;
 
-    if (kDebugMode) {
-      OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+    // OneSignal Flutter SDK currently has limited support/complex setup for Web.
+    // We skip it on Web for now to ensure the app runs.
+    if (kIsWeb) {
+      debugPrint("OneSignal: Skipping initialization on Web platform.");
+      return;
     }
 
-    // Initialize OneSignal
-    OneSignal.initialize(appId);
+    try {
+      if (kDebugMode) {
+        OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+      }
 
-    // Request permissions
-    await OneSignal.Notifications.requestPermission(true);
+      // Initialize OneSignal
+      OneSignal.initialize(appId);
 
-    _isInitialized = true;
+      // Request permissions
+      await OneSignal.Notifications.requestPermission(true);
+
+      _isInitialized = true;
+    } catch (e) {
+      debugPrint("OneSignal: Initialization failed: $e");
+    }
   }
 
   /// Maps the Firebase userId to OneSignal's external_id.
   /// This allows us to target notifications to specific users (e.g., Conflicts).
   Future<void> login(String userId) async {
+    if (kIsWeb) return;
     try {
       await OneSignal.login(userId);
       if (kDebugMode) {
@@ -46,6 +58,7 @@ class OneSignalService {
 
   /// Removes the user mapping on logout.
   Future<void> logout() async {
+    if (kIsWeb) return;
     try {
       await OneSignal.logout();
     } catch (e) {
