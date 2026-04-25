@@ -2,7 +2,7 @@ name: room_allocation_system
 description: "Engineering Building Room Allocation System"
 publish_to: 'none'
 
-version: 1.0.3+4
+version: 1.0.9+10
 
 environment:
   sdk: ^3.11.4

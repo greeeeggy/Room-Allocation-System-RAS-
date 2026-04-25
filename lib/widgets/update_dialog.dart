@@ -29,17 +29,19 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
     try {
       OtaUpdate()
-          .execute(
-        widget.downloadUrl,
-        destinationFilename: 'update.apk',
-      )
+          .execute(widget.downloadUrl)
           .listen(
         (OtaEvent event) {
+          debugPrint('OTA Status: ${event.status}, Value: ${event.value}');
           setState(() {
             _currentEvent = event;
           });
+          
           if (event.status == OtaStatus.INSTALLING) {
-            Navigator.of(context).pop();
+            // Keep the dialog for a second before closing to ensure the intent is fully handled
+            Future.delayed(const Duration(seconds: 1), () {
+              if (mounted) Navigator.of(context).pop();
+            });
           }
         },
         onError: (e) {
@@ -47,9 +49,14 @@ class _UpdateDialogState extends State<UpdateDialog> {
           setState(() {
             _isDownloading = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Update failed: $e')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Update failed: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         },
       );
     } catch (e) {
