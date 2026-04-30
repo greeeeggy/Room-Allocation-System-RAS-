@@ -111,13 +111,15 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
             );
           }
 
-          final minutesUntil = TimeUtils.minutesUntil(block.startTime);
+          final minutesUntilStart = TimeUtils.minutesUntil(block.startTime);
+          final minutesUntilEnd = TimeUtils.minutesUntil(block.endTime);
+          
           final canCheckIn = block.checkInStatus == CheckInStatus.pending &&
-              minutesUntil <= 15;
+              minutesUntilStart <= 15 && minutesUntilEnd > 0;
 
           return _PendingView(
             block: block,
-            minutesUntil: minutesUntil,
+            minutesUntil: minutesUntilStart,
             canCheckIn: canCheckIn,
             loading: _loading,
             conflictSection: _conflictSection,
@@ -198,13 +200,18 @@ class _PendingView extends StatelessWidget {
           if (conflictSection == null) ...[
             // Availability indicator
             if (!canCheckIn)
-              _InfoBanner(
-                icon: Icons.schedule,
-                color: Colors.blue.shade700,
-                message: minutesUntil > 0
-                    ? 'Check-in opens 15 minutes before start time. ($minutesUntil min remaining)'
-                    : 'This block has already passed.',
-              ),
+              Builder(builder: (context) {
+                final isPast = TimeUtils.minutesUntil(block.endTime) <= 0;
+                final isTooEarly = TimeUtils.minutesUntil(block.startTime) > 15;
+                
+                return _InfoBanner(
+                  icon: isPast ? Icons.history : Icons.schedule,
+                  color: isPast ? Colors.red.shade700 : Colors.blue.shade700,
+                  message: isTooEarly
+                      ? 'Check-in opens 15 minutes before start time. (${TimeUtils.minutesUntil(block.startTime)} min remaining)'
+                      : (isPast ? 'This block has already passed.' : 'Check-in is available.'),
+                );
+              }),
 
             const SizedBox(height: 24),
 
@@ -215,6 +222,8 @@ class _PendingView extends StatelessWidget {
               final isOccupied = room?.status == RoomStatus.occupied;
               final isToday = block.dayOfWeek == TimeUtils.dayKey(DateTime.now());
               final isCancelled = block.noClassDate == TimeUtils.todayDateKey();
+              final isPast = TimeUtils.minutesUntil(block.endTime) <= 0;
+              final isTooEarly = TimeUtils.minutesUntil(block.startTime) > 15;
 
               final actualCanCheckIn = canCheckIn && isToday && !isOccupied && !isCancelled;
 
@@ -223,7 +232,9 @@ class _PendingView extends StatelessWidget {
                 disableReason = 'This schedule is not for today (${block.dayOfWeek}).';
               } else if (isCancelled) {
                 disableReason = 'You marked this schedule as "No Class" today.';
-              } else if (minutesUntil > 15) {
+              } else if (isPast) {
+                disableReason = 'This block has already ended.';
+              } else if (isTooEarly) {
                 disableReason = 'Check-in opens 15 minutes before start time.';
               } else if (isOccupied) {
                 disableReason = 'Room is currently occupied by someone else.';

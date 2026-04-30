@@ -274,7 +274,7 @@ class _EditBlockScreenState extends ConsumerState<EditBlockScreen> {
                       value: 'unassigned',
                       child: Text('No assigned room'),
                     ),
-                    ...rooms.map((r) => DropdownMenuItem(
+                    ...rooms.where((r) => !r.isOffice).map((r) => DropdownMenuItem(
                           value: r.roomId,
                           child: Text('${r.roomNumber} (Floor ${r.floor})'),
                         ))

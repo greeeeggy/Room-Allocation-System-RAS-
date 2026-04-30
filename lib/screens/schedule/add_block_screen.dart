@@ -204,7 +204,7 @@ class _AddBlockScreenState extends ConsumerState<AddBlockScreen> {
                     value: 'unassigned',
                     child: Text('No assigned room'),
                   ),
-                  ...rooms.map((r) => DropdownMenuItem(
+                  ...rooms.where((r) => !r.isOffice).map((r) => DropdownMenuItem(
                         value: r.roomId,
                         child: Text('${r.roomNumber} (Floor ${r.floor})'),
                       ))
