@@ -55,7 +55,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         );
       }
 
-      await ref.read(authServiceProvider).register(
+      await ref.read(authServiceProvider).registerOrRecoverOrphan(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
         name: _nameCtrl.text.trim(),
@@ -74,6 +74,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   String _friendlyError(String raw) {
+    if (raw.contains('previously registered')) {
+      // Orphan account recovery message — show as-is.
+      return raw.replaceFirst('Exception: ', '');
+    }
     if (raw.contains('email-already-in-use')) return 'An account with this email already exists.';
     if (raw.contains('weak-password')) return 'Password must be at least 6 characters.';
     if (raw.contains('invalid-email')) return 'Invalid email format.';

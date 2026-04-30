@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../core/constants.dart';
 import '../models/mayor_approval_model.dart';
-import 'package:flutter/foundation.dart';
 
 class MayorService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -73,6 +72,118 @@ class MayorService {
     await _db.collection('mayor_approvals').doc(id).delete();
   }
 
+  /// Completely remove a mayor from the system.
+  ///
+  /// Cascade-deletes all Firestore data associated with the mayor:
+  ///   1. Releases any rooms currently occupied by the mayor
+  ///   2. Deletes all schedule blocks (all semesters)
+  ///   3. Deletes all room usage logs
+  ///   4. Deletes all notifications
+  ///   5. Deletes all lost item posts
+  ///   6. Deletes all lost item messages
+  ///   7. Deletes the user document
+  ///   8. Deletes the mayor_approval entry
+  ///
+  /// The Firebase Auth account is intentionally left intact (no Admin SDK
+  /// on the free Spark plan).  The registration flow handles orphaned
+  /// accounts gracefully so the email can be re-used.
+  Future<void> deleteMayorCompletely(MayorApprovalModel approval) async {
+    // ── Step 1: Find the mayor's userId ────────────────────────────────
+    final userSnap = await _db
+        .collection('users')
+        .where('role', isEqualTo: 'mayor')
+        .where('department', isEqualTo: approval.department)
+        .where('courseSection', isEqualTo: approval.courseSection)
+        .limit(1)
+        .get();
+
+    final String? mayorUid =
+        userSnap.docs.isNotEmpty ? userSnap.docs.first.id : null;
+
+    if (mayorUid != null) {
+      // ── Step 2: Release occupied rooms ────────────────────────────────
+      final occupiedSnap = await _db
+          .collection('scheduleBlocks')
+          .where('mayorId', isEqualTo: mayorUid)
+          .where('checkInStatus', isEqualTo: 'checked_in')
+          .get();
+
+      if (occupiedSnap.docs.isNotEmpty) {
+        final releaseBatch = _db.batch();
+        for (final doc in occupiedSnap.docs) {
+          final roomId = doc.data()['roomId'] as String?;
+          if (roomId != null && roomId.isNotEmpty) {
+            releaseBatch.update(
+              _db.collection('rooms').doc(roomId),
+              {'status': 'available', 'currentOccupantBlockId': null},
+            );
+          }
+        }
+        await releaseBatch.commit();
+      }
+
+      // ── Step 3: Delete all schedule blocks ────────────────────────────
+      await _batchDeleteQuery(
+        _db.collection('scheduleBlocks').where('mayorId', isEqualTo: mayorUid),
+      );
+
+      // ── Step 4: Delete all room usage logs ────────────────────────────
+      await _batchDeleteQuery(
+        _db.collection('room_usage_logs').where('mayorId', isEqualTo: mayorUid),
+      );
+
+      // ── Step 5: Delete all notifications ──────────────────────────────
+      await _batchDeleteQuery(
+        _db.collection('notifications').where('recipientId', isEqualTo: mayorUid),
+      );
+
+      // ── Step 6: Delete all lost item posts ────────────────────────────
+      // First get the item IDs so we can delete their messages too.
+      final lostItemSnap = await _db
+          .collection('lost_items')
+          .where('posterId', isEqualTo: mayorUid)
+          .get();
+
+      for (final itemDoc in lostItemSnap.docs) {
+        // Delete messages for this lost item
+        await _batchDeleteQuery(
+          _db.collection('lost_item_messages').where('itemId', isEqualTo: itemDoc.id),
+        );
+      }
+
+      // Now delete the lost items themselves
+      await _batchDeleteQuery(
+        _db.collection('lost_items').where('posterId', isEqualTo: mayorUid),
+      );
+
+      // ── Step 7: Delete messages sent by this mayor (in other threads) ─
+      await _batchDeleteQuery(
+        _db.collection('lost_item_messages').where('senderId', isEqualTo: mayorUid),
+      );
+
+      // ── Step 8: Delete the user document ──────────────────────────────
+      await _db.collection('users').doc(mayorUid).delete();
+    }
+
+    // ── Step 9: Delete the mayor_approval entry ─────────────────────────
+    await _db.collection('mayor_approvals').doc(approval.id).delete();
+  }
+
+  /// Batch-deletes all documents matching [query] in chunks of 400.
+  Future<void> _batchDeleteQuery(Query query) async {
+    const batchSize = 400;
+    while (true) {
+      final snap = await query.limit(batchSize).get();
+      if (snap.docs.isEmpty) break;
+
+      final batch = _db.batch();
+      for (final doc in snap.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
+  }
+
   /// Validates if a mayor can register.
   /// Throws an exception if not authorized.
   Future<void> validateMayorRegistration({
@@ -94,3 +205,4 @@ class MayorService {
     }
   }
 }
+

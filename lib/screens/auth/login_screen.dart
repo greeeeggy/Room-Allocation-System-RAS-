@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -36,8 +38,64 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
       );
+
+      // ── Orphan account detection ──────────────────────────────────
+      // If sign-in succeeded but there is no Firestore user document,
+      // the account was deleted by a Council President.  Sign out and
+      // show a clear message.
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .get();
+
+        if (!userDoc.exists) {
+          await FirebaseAuth.instance.signOut();
+          if (mounted) {
+            setState(() => _error =
+                'Your account was removed by your Council President. '
+                'If you have been re-authorized, please go to the '
+                'Register screen to create a new account.');
+          }
+          return;
+        }
+      }
     } on Exception catch (e) {
       setState(() => _error = _friendlyError(e.toString()));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
+      setState(() => _error = 'Enter your email address first.');
+      return;
+    }
+    setState(() { _loading = true; _error = null; });
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (mounted) {
+        setState(() => _error = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Password reset email sent to $email',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() => _error = e.code == 'user-not-found'
+            ? 'No account found with that email.'
+            : 'Failed to send reset email. Try again.');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -176,7 +234,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               label: 'Login',
                               onPressed: _login,
                             ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
+                      // Forgot Password link
+                      TextButton(
+                        onPressed: _loading ? null : _forgotPassword,
+                        child: Text(
+                          'Forgot Password?',
+                          style: GoogleFonts.outfit(
+                            color: AppColors.textOnDark.withOpacity(0.5),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
                       // Register link
                       TextButton(
                         onPressed: () => context.go('/register'),

@@ -119,6 +119,7 @@ class MayorManagementScreen extends ConsumerWidget {
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
                         itemCount: sorted.length,
                         itemBuilder: (_, i) => _MayorTile(
+                          key: ValueKey(sorted[i].id),
                           approval: sorted[i],
                           index: i,
                         ),
@@ -174,15 +175,22 @@ class MayorManagementScreen extends ConsumerWidget {
 
 // ── Mayor tile (Architect style) ─────────────────────────────────────────────
 
-class _MayorTile extends ConsumerWidget {
+class _MayorTile extends ConsumerStatefulWidget {
   final MayorApprovalModel approval;
   final int index;
-  const _MayorTile({required this.approval, required this.index});
+  const _MayorTile({super.key, required this.approval, required this.index});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MayorTile> createState() => _MayorTileState();
+}
+
+class _MayorTileState extends ConsumerState<_MayorTile> {
+  bool _deleting = false;
+
+  @override
+  Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 400 + (index * 80).clamp(0, 500)),
+      duration: Duration(milliseconds: 400 + (widget.index * 80).clamp(0, 500)),
       tween: Tween(begin: 0.0, end: 1.0),
       curve: Curves.easeOutQuart,
       builder: (context, value, child) {
@@ -224,7 +232,7 @@ class _MayorTile extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          approval.name.toUpperCase(),
+                          widget.approval.name.toUpperCase(),
                           style: const TextStyle(
                             color: Color(0xFF1A1A1A),
                             fontSize: 18,
@@ -235,7 +243,7 @@ class _MayorTile extends ConsumerWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          approval.courseSection,
+                          widget.approval.courseSection,
                           style: TextStyle(
                             color: AppColors.accent.withOpacity(0.7),
                             fontSize: 10,
@@ -247,28 +255,37 @@ class _MayorTile extends ConsumerWidget {
                     ),
                     const Spacer(),
                     // Delete action
-                    GestureDetector(
-                      onTap: () => _confirmDelete(context, ref, approval),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.08),
-                          border: Border.all(
-                            color: Colors.red.withOpacity(0.2),
+                    _deleting
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.red,
+                            ),
+                          )
+                        : GestureDetector(
+                            onTap: () => _showWarning1(context),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.08),
+                                border: Border.all(
+                                  color: Colors.red.withOpacity(0.2),
+                                ),
+                              ),
+                              child: const Text(
+                                'REMOVE',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          'REMOVE',
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -298,39 +315,351 @@ class _MayorTile extends ConsumerWidget {
     );
   }
 
-  void _confirmDelete(
-      BuildContext context, WidgetRef ref, MayorApprovalModel approval) {
+  // ── Warning 1: Consequences Overview ──────────────────────────────────
+  void _showWarning1(BuildContext context) {
+    final name = widget.approval.name;
+    final section = widget.approval.courseSection;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Authorization?'),
-        content: Text(
-            'This will prevent ${approval.name} from registering as the mayor of ${approval.courseSection}. Existing accounts will not be deleted but they may lose access to management features if you remove this.'),
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        backgroundColor: Colors.white,
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.warning_amber_rounded,
+                  color: Colors.orange.shade700, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Remove Mayor?',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1A1A1A),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            RichText(
+              text: TextSpan(
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  color: Colors.black87,
+                  height: 1.5,
+                ),
+                children: [
+                  const TextSpan(text: 'You are about to remove '),
+                  TextSpan(
+                    text: name,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  TextSpan(text: ' ($section) from the system.\n\n'),
+                  const TextSpan(
+                    text: 'This will permanently delete:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            _bulletPoint('Their user account and profile'),
+            _bulletPoint('All schedule blocks (all semesters)'),
+            _bulletPoint('Room usage history and logs'),
+            _bulletPoint('All notifications'),
+            _bulletPoint('Lost item posts and messages'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.red.shade100),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.red.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone.',
+                      style: GoogleFonts.outfit(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.outfit(
+                color: Colors.black54,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await ref
-                    .read(mayorServiceProvider)
-                    .deleteApproval(approval.id);
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
-                }
-              }
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showWarning2(context);
             },
-            child:
-                const Text('Remove', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade700,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6)),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            child: Text(
+              'Continue',
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  // ── Warning 2: Final Confirmation ─────────────────────────────────────
+  void _showWarning2(BuildContext outerContext) {
+    final name = widget.approval.name;
+    final section = widget.approval.courseSection;
+
+    showDialog(
+      context: outerContext,
+      barrierDismissible: false,
+      builder: (ctx) => _FinalConfirmationDialog(
+        name: name,
+        section: section,
+        onConfirm: () async {
+          Navigator.pop(ctx);
+          await _executeDelete(outerContext);
+        },
+      ),
+    );
+  }
+
+  // ── Execute the deletion ──────────────────────────────────────────────
+  Future<void> _executeDelete(BuildContext context) async {
+    if (!mounted) return;
+    final String deletedName = widget.approval.name;
+    setState(() => _deleting = true);
+
+    try {
+      await ref
+          .read(mayorServiceProvider)
+          .deleteMayorCompletely(widget.approval);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$deletedName has been permanently removed.',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: Colors.green.shade700,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error removing mayor: $e'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Widget _bulletPoint(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 6, right: 8),
+            child: Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.red.shade400,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                color: Colors.black87,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Final Confirmation Dialog (Stateful for loading state) ────────────────────
+
+class _FinalConfirmationDialog extends StatefulWidget {
+  final String name;
+  final String section;
+  final Future<void> Function() onConfirm;
+
+  const _FinalConfirmationDialog({
+    required this.name,
+    required this.section,
+    required this.onConfirm,
+  });
+
+  @override
+  State<_FinalConfirmationDialog> createState() =>
+      _FinalConfirmationDialogState();
+}
+
+class _FinalConfirmationDialogState extends State<_FinalConfirmationDialog> {
+  bool _loading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      backgroundColor: Colors.white,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.delete_forever_rounded,
+                color: Colors.red.shade700, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Final Confirmation',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF1A1A1A),
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: TextSpan(
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                color: Colors.black87,
+                height: 1.5,
+              ),
+              children: [
+                const TextSpan(text: 'Are you absolutely sure?\n\n'),
+                TextSpan(
+                  text: widget.name,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                TextSpan(
+                    text: ' (${widget.section}) '
+                        'will be permanently removed. They will need to '
+                        'be re-authorized and re-register to use the '
+                        'system again.'),
+              ],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.pop(context),
+          child: Text(
+            'Go Back',
+            style: GoogleFonts.outfit(
+              color: Colors.black54,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: _loading
+              ? null
+              : () async {
+                  setState(() => _loading = true);
+                  await widget.onConfirm();
+                },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red.shade700,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6)),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          ),
+          child: _loading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  'DELETE PERMANENTLY',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+        ),
+      ],
     );
   }
 }
