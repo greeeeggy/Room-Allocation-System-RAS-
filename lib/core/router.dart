@@ -23,25 +23,40 @@ import '../screens/mayors/mayor_management_screen.dart';
 import '../screens/admin/end_of_year_screen.dart';
 import '../screens/admin/submitted_bugs_screen.dart';
 import '../screens/settings/submit_bug_screen.dart';
+import '../widgets/splash_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
-    initialLocation: '/login',
+    initialLocation: '/splash',
     refreshListenable: _AuthRefreshListenable(ref),
     redirect: (context, state) {
       final authAsync = ref.read(authStateProvider);
+      
+      // While auth is still loading, stay on the current route (usually /splash)
+      if (authAsync.isLoading) return null;
+
       final isLoggedIn = authAsync.valueOrNull != null;
+      final isSplash = state.matchedLocation == '/splash';
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
+
+      // Transition away from splash once auth is ready
+      if (isSplash) {
+        return isLoggedIn ? '/dashboard' : '/login';
+      }
 
       if (!isLoggedIn && !isAuthRoute) return '/login';
       if (isLoggedIn && isAuthRoute) return '/dashboard';
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (_, __) => const SplashScreen(),
+      ),
       // ── Auth routes (outside the shell) ──────────────────────────
       GoRoute(
         path: '/login',

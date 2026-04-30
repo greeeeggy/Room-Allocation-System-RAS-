@@ -43,9 +43,15 @@ android {
     }
 
     applicationVariants.all {
+        val variantName = name
         outputs.all {
             val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            output.outputFileName = "RAS.apk"
+            val abi = output.getFilter(com.android.build.OutputFile.ABI)
+            if (abi != null) {
+                output.outputFileName = "RAS-$variantName-$abi.apk"
+            } else {
+                output.outputFileName = "RAS-$variantName.apk"
+            }
         }
     }
 }

@@ -149,13 +149,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 32),
                       // Logo
                       Center(
-                        child: Image.asset(
-                          'assets/images/RAS_logo.png',
-                          height: 100,
-                          errorBuilder: (context, error, stackTrace) => const Icon(
-                            Icons.domain,
-                            size: 64,
-                            color: AppColors.accent,
+                        child: Hero(
+                          tag: 'app_logo',
+                          child: Image.asset(
+                            'assets/images/RAS_logo.png',
+                            height: 100,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.domain,
+                              size: 64,
+                              color: AppColors.accent,
+                            ),
                           ),
                         ),
                       ),

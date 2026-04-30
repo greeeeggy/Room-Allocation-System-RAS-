@@ -96,9 +96,12 @@ class _CouncilDirectoryScreenState extends ConsumerState<CouncilDirectoryScreen>
                       return Center(child: Text('Error: $e'));
                     },
                     data: (users) {
+                      // Secretive requirement: Filter out system admins from public directory
+                      final visibleUsers = users.where((u) => !u.isAdmin).toList();
+
                       final filtered = _selectedDept == 'All'
-                          ? users
-                          : users.where((u) => 
+                          ? visibleUsers
+                          : visibleUsers.where((u) => 
                               Departments.getAbbreviation(u.department) == 
                               Departments.getAbbreviation(_selectedDept)).toList();
 

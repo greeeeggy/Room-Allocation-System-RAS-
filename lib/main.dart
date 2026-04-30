@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'core/router.dart';
@@ -11,23 +12,21 @@ import 'providers/auth_provider.dart';
 import 'widgets/update_dialog.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
-  // Initialize OneSignal Push Notifications
-  try {
-    await OneSignalService().init();
-  } catch (e) {
+  // Initialize OneSignal Push Notifications in the background
+  OneSignalService().init().catchError((e) {
     debugPrint('OneSignal initialization failed: $e');
-  }
+  });
 
-  // Run auto-release and no-show detection on startup
+  // Run auto-release and no-show detection on startup in the background
   final statusEngine = StatusEngine();
-  try {
-    await statusEngine.runOnAppLoad();
-  } catch (e) {
+  statusEngine.runOnAppLoad().catchError((e) {
     debugPrint('[StatusEngine] runOnAppLoad failed: $e');
-  }
+  });
   statusEngine.startPeriodicCheck();
   
   runApp(const ProviderScope(child: RoomAllocationSystemApp()));
