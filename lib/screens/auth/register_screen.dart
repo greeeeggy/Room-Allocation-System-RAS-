@@ -26,9 +26,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _loading = false;
   bool _obscure = true;
   String? _error;
+  bool _isAdmin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl.addListener(_detectAdmin);
+  }
 
   @override
   void dispose() {
+    _nameCtrl.removeListener(_detectAdmin);
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
@@ -36,21 +44,48 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  void _detectAdmin() {
+    final text = _nameCtrl.text.trim().toLowerCase();
+    final detected = text.startsWith('admin/') && text.length > 6;
+    if (detected != _isAdmin) {
+      setState(() => _isAdmin = detected);
+    }
+  }
+
+  /// Strips the 'admin/' prefix and returns the clean name.
+  String get _cleanName {
+    final raw = _nameCtrl.text.trim();
+    if (_isAdmin) {
+      return raw.substring(6).trim(); // Remove 'admin/' (6 chars)
+    }
+    return raw;
+  }
+
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedRole == 'mayor' && _sectionCtrl.text.trim().isEmpty) {
+    if (!_isAdmin && _selectedRole == 'mayor' && _sectionCtrl.text.trim().isEmpty) {
       setState(() => _error = 'Course & section is required for mayors.');
+      return;
+    }
+
+    // Validate admin name isn't empty after prefix
+    if (_isAdmin && _cleanName.isEmpty) {
+      setState(() => _error = 'Enter your name after admin/');
       return;
     }
 
     setState(() { _loading = true; _error = null; });
 
     try {
-      if (_selectedRole == 'mayor') {
+      final role = _isAdmin ? 'admin' : _selectedRole;
+      final dept = _isAdmin ? 'System Admin' : _selectedDept;
+      final name = _cleanName;
+
+      if (!_isAdmin && _selectedRole == 'mayor') {
         await ref.read(mayorServiceProvider).validateMayorRegistration(
-          name: _nameCtrl.text.trim(),
-          department: _selectedDept,
+          name: name,
+          department: dept,
           courseSection: _sectionCtrl.text.trim(),
         );
       }
@@ -58,10 +93,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       await ref.read(authServiceProvider).registerOrRecoverOrphan(
         email: _emailCtrl.text.trim(),
         password: _passwordCtrl.text,
-        name: _nameCtrl.text.trim(),
-        role: _selectedRole,
-        department: _selectedDept,
-        courseSection: _selectedRole == 'mayor'
+        name: name,
+        role: role,
+        department: dept,
+        courseSection: !_isAdmin && _selectedRole == 'mayor'
             ? _sectionCtrl.text.trim()
             : null,
       );
@@ -152,6 +187,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             validator: (v) =>
                                 v == null || v.isEmpty ? 'Enter your name' : null,
                           ),
+
+                          // ── Admin privilege badge ──
+                          if (_isAdmin) ...[
+                            const SizedBox(height: 14),
+                            _AdminBadge(),
+                          ],
+
                           const SizedBox(height: 14),
                           // Email
                           _GlassField(
@@ -186,135 +228,139 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 ? 'Password must be at least 6 characters'
                                 : null,
                           ),
-                          const SizedBox(height: 20),
-                          // Role label
-                          Text(
-                            'Role',
-                            style: GoogleFonts.outfit(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textOnDark.withOpacity(0.75),
+
+                          // ── Role / Department / Section — HIDDEN for admin ──
+                          if (!_isAdmin) ...[
+                            const SizedBox(height: 20),
+                            // Role label
+                            Text(
+                              'Role',
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textOnDark.withOpacity(0.75),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Role cards
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _RoleCard(
-                                  label: 'Class Mayor',
-                                  icon: Icons.school_outlined,
-                                  selected: _selectedRole == 'mayor',
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedRole = 'mayor';
-                                      _selectedDept = Departments.departmentFullNames.first;
-                                    });
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _RoleCard(
-                                  label: 'Council President',
-                                  icon: Icons.admin_panel_settings_outlined,
-                                  selected: _selectedRole == 'council_president',
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedRole = 'council_president';
-                                      _selectedDept = Departments.departmentFullNames.first;
-                                    });
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          // Engineering Council President — full-width card
-                          _RoleCard(
-                            label: 'Engineering Council President',
-                            icon: Icons.shield_outlined,
-                            selected: _selectedRole == 'engineering_council_president',
-                            onTap: () {
-                              setState(() {
-                                _selectedRole = 'engineering_council_president';
-                                _selectedDept = Departments.engineeringCouncil;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 14),
-                          // Department dropdown — hidden for EC President
-                          if (_selectedRole != 'engineering_council_president')
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Department',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textOnDark.withOpacity(0.75),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: AppColors.authSurface,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: const Color(0xFFDA9F93).withOpacity(0.6),
-                                    width: 1.5,
+                            const SizedBox(height: 8),
+                            // Role cards
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _RoleCard(
+                                    label: 'Class Mayor',
+                                    icon: Icons.school_outlined,
+                                    selected: _selectedRole == 'mayor',
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedRole = 'mayor';
+                                        _selectedDept = Departments.departmentFullNames.first;
+                                      });
+                                    },
                                   ),
                                 ),
-                                child: DropdownButtonFormField<String>(
-                                  value: _selectedDept,
-                                  dropdownColor: const Color(0xFF3A0A10),
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white,
-                                    fontSize: 14,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _RoleCard(
+                                    label: 'Council President',
+                                    icon: Icons.admin_panel_settings_outlined,
+                                    selected: _selectedRole == 'council_president',
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedRole = 'council_president';
+                                        _selectedDept = Departments.departmentFullNames.first;
+                                      });
+                                    },
                                   ),
-                                  iconEnabledColor: AppColors.accent,
-                                  decoration: InputDecoration(
-                                    prefixIcon: const Icon(
-                                      Icons.business_outlined,
-                                      color: AppColors.accent,
-                                      size: 20,
-                                    ),
-                                    filled: true,
-                                    fillColor: AppColors.authSurface,
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 14,
-                                    ),
-                                  ),
-                                  items: Departments.departmentFullNames
-                                      .map((d) => DropdownMenuItem(
-                                            value: d,
-                                            child: Text(d,
-                                                style: GoogleFonts.outfit(
-                                                    color: Colors.white,
-                                                    fontSize: 13)),
-                                          ))
-                                      .toList(),
-                                  onChanged: (v) =>
-                                      setState(() => _selectedDept = v!),
                                 ),
-                              ),
-                            ],
-                          ),
-                          // Course & section — only for mayors
-                          if (_selectedRole == 'mayor') ...[
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            // Engineering Council President — full-width card
+                            _RoleCard(
+                              label: 'Engineering Council President',
+                              icon: Icons.shield_outlined,
+                              selected: _selectedRole == 'engineering_council_president',
+                              onTap: () {
+                                setState(() {
+                                  _selectedRole = 'engineering_council_president';
+                                  _selectedDept = Departments.engineeringCouncil;
+                                });
+                              },
+                            ),
                             const SizedBox(height: 14),
-                            _GlassField(
-                              controller: _sectionCtrl,
-                              label: 'Course & Section',
-                              hint: 'e.g. BSIE 3-A',
-                              icon: Icons.group_outlined,
-                              textCapitalization: TextCapitalization.characters,
+                            // Department dropdown — hidden for EC President
+                            if (_selectedRole != 'engineering_council_president')
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Department',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textOnDark.withOpacity(0.75),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.authSurface,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color(0xFFDA9F93).withOpacity(0.6),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: DropdownButtonFormField<String>(
+                                    value: _selectedDept,
+                                    dropdownColor: const Color(0xFF3A0A10),
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                    iconEnabledColor: AppColors.accent,
+                                    decoration: InputDecoration(
+                                      prefixIcon: const Icon(
+                                        Icons.business_outlined,
+                                        color: AppColors.accent,
+                                        size: 20,
+                                      ),
+                                      filled: true,
+                                      fillColor: AppColors.authSurface,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 14,
+                                      ),
+                                    ),
+                                    items: Departments.departmentFullNames
+                                        .map((d) => DropdownMenuItem(
+                                              value: d,
+                                              child: Text(d,
+                                                  style: GoogleFonts.outfit(
+                                                      color: Colors.white,
+                                                      fontSize: 13)),
+                                            ))
+                                        .toList(),
+                                    onChanged: (v) =>
+                                        setState(() => _selectedDept = v!),
+                                  ),
+                                ),
+                              ],
                             ),
+                            // Course & section — only for mayors
+                            if (_selectedRole == 'mayor') ...[
+                              const SizedBox(height: 14),
+                              _GlassField(
+                                controller: _sectionCtrl,
+                                label: 'Course & Section',
+                                hint: 'e.g. BSIE 3-A',
+                                icon: Icons.group_outlined,
+                                textCapitalization: TextCapitalization.characters,
+                              ),
+                            ],
                           ],
                           // Error
                           if (_error != null) ...[
@@ -363,6 +409,97 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Admin privilege badge (animated) ──────────────────────────────────────────
+
+class _AdminBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 400),
+      tween: Tween(begin: 0.0, end: 1.0),
+      curve: Curves.easeOutBack,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value.clamp(0.0, 1.0),
+          child: Transform.scale(
+            scale: 0.8 + (0.2 * value),
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF1A1A2E),
+              const Color(0xFF16213E),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF00D4AA).withOpacity(0.6),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF00D4AA).withOpacity(0.15),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00D4AA).withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.admin_panel_settings_rounded,
+                color: Color(0xFF00D4AA),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ADMIN PRIVILEGE',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF00D4AA),
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'System monitoring & bug report access',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.verified_rounded,
+              color: Color(0xFF00D4AA),
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -18,6 +18,7 @@ class MainShell extends ConsumerWidget {
         : const AsyncValue.data(0);
     final unreadCount = unreadAsync.valueOrNull ?? 0;
     final isECPresident = user?.isEngineeringCouncilPresident ?? false;
+    final isAdmin = user?.isAdmin ?? false;
 
     return Scaffold(
       extendBody: true,
@@ -39,6 +40,7 @@ class MainShell extends ConsumerWidget {
                 unreadCount: unreadCount,
                 isCouncilPresident: user?.isCouncilPresident ?? false,
                 isECPresident: isECPresident,
+                isAdmin: isAdmin,
               ),
             ),
           ),
@@ -53,12 +55,14 @@ class _GlassFloatingNavbar extends StatelessWidget {
   final int unreadCount;
   final bool isCouncilPresident;
   final bool isECPresident;
+  final bool isAdmin;
 
   const _GlassFloatingNavbar({
     required this.navigationShell,
     required this.unreadCount,
     required this.isCouncilPresident,
     this.isECPresident = false,
+    this.isAdmin = false,
   });
 
   @override
@@ -132,16 +136,20 @@ class _GlassFloatingNavbar extends StatelessWidget {
                         onTap: () => _onTap(0),
                       ),
                       _StylishNavbarItem(
-                        icon: isECPresident
-                            ? Icons.restart_alt_rounded
-                            : isCouncilPresident
-                                ? Icons.groups_rounded
-                                : Icons.event_available_rounded,
-                        label: isECPresident
-                            ? 'Reset'
-                            : isCouncilPresident
-                                ? 'Mayors'
-                                : 'Schedule',
+                        icon: isAdmin
+                            ? Icons.bug_report_rounded
+                            : isECPresident
+                                ? Icons.restart_alt_rounded
+                                : isCouncilPresident
+                                    ? Icons.groups_rounded
+                                    : Icons.event_available_rounded,
+                        label: isAdmin
+                            ? 'Bugs'
+                            : isECPresident
+                                ? 'Reset'
+                                : isCouncilPresident
+                                    ? 'Mayors'
+                                    : 'Schedule',
                         isSelected: activeIndex == 1,
                         onTap: () => _onTap(1),
                       ),

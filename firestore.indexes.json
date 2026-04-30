@@ -94,6 +94,14 @@
         { "fieldPath": "createdAt", "order": "ASCENDING" },
         { "fieldPath": "__name__", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "bugReports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "submitterId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

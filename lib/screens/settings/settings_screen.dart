@@ -8,6 +8,7 @@ import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -164,9 +165,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             return const Center(child: Text('Not logged in.'));
           }
 
-          final roleLabel = user.role == UserRole.councilPresident
-              ? 'Council President'
-              : 'Mayor';
+          final roleLabel = user.role == UserRole.admin
+              ? 'System Admin'
+              : user.role == UserRole.engineeringCouncilPresident
+                  ? 'Engineering Council President'
+                  : user.role == UserRole.councilPresident
+                      ? 'Council President'
+                      : 'Mayor';
 
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -283,19 +288,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         label: 'Email',
                         value: user.email,
                       ),
-                      const Divider(height: 1, indent: 56),
-                      _buildInfoTile(
-                        icon: Icons.business_outlined,
-                        label: 'Department',
-                        value: user.department,
-                      ),
+                      if (!user.isAdmin) ...[
+                        const Divider(height: 1, indent: 56),
+                        _buildInfoTile(
+                          icon: Icons.business_outlined,
+                          label: 'Department',
+                          value: user.department,
+                        ),
+                      ],
                       const Divider(height: 1, indent: 56),
                       _buildInfoTile(
                         icon: Icons.badge_outlined,
                         label: 'Role',
                         value: roleLabel,
                       ),
-                      if (user.courseSection != null) ...[
+                      if (user.courseSection != null && !user.isAdmin) ...[
                         const Divider(height: 1, indent: 56),
                         _buildInfoTile(
                           icon: Icons.class_outlined,
@@ -306,6 +313,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                   ),
                 ),
+
+                // ── Bug Report (non-admin only) ───────────────────────────
+                if (!user.isAdmin) ...[
+                  _buildSectionHeader('Bug Report'),
+                  _buildGroupedCard(
+                    child: ListTile(
+                      leading: Icon(Icons.bug_report_outlined, color: Colors.orange.shade700, size: 22),
+                      title: const Text(
+                        'Submit Bug Report',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Report an issue or bug',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey.shade400),
+                      onTap: () => context.push('/dashboard/submit-bug'),
+                    ),
+                  ),
+                ],
 
                 // ── Sign Out ──────────────────────────────────────────────
                 _buildSectionHeader('Account'),

@@ -1,6 +1,8 @@
 // Departments, roles, room status, and day-of-week enums/constants
 
-enum UserRole { mayor, councilPresident, engineeringCouncilPresident }
+enum UserRole { mayor, councilPresident, engineeringCouncilPresident, admin }
+
+enum BugStatus { open, inProgress, resolved }
 
 enum RoomStatus { available, occupied, soon, noClass }
 

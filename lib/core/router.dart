@@ -21,6 +21,8 @@ import 'package:room_allocation_system/screens/lost_and_found/lost_item_detail_s
 import 'package:room_allocation_system/screens/lost_and_found/post_lost_item_screen.dart';
 import '../screens/mayors/mayor_management_screen.dart';
 import '../screens/admin/end_of_year_screen.dart';
+import '../screens/admin/submitted_bugs_screen.dart';
+import '../screens/settings/submit_bug_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -82,6 +84,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/schedule',
                 builder: (context, state) {
                   final user = ref.watch(authStateProvider).valueOrNull;
+                  if (user?.isAdmin == true) {
+                    return const SubmittedBugsScreen();
+                  }
                   if (user?.isEngineeringCouncilPresident == true) {
                     return const EndOfYearScreen();
                   }
@@ -141,6 +146,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: 'settings',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (_, __) => const SettingsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'submit-bug',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (_, __) => const SubmitBugScreen(),
                   ),
                 ],
               ),
