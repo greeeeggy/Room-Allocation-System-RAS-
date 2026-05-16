@@ -2,7 +2,7 @@ name: room_allocation_system
 description: "Engineering Building Room Availability System"
 publish_to: 'none'
 
-version: 1.1.1+12
+version: 1.1.2+100
 
 environment:
   sdk: ^3.11.4
