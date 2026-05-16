@@ -208,7 +208,7 @@ class _EndOfYearScreenState extends ConsumerState<EndOfYearScreen>
             children: [
               Text(
                 'POINT OF NO RETURN\n\n'
-                'You are about to DELETE ALL DATA in the Room Allocation System.\n\n'
+                'You are about to DELETE ALL DATA in the Room Availability System.\n\n'
                 '• ALL user accounts (including yours)\n'
                 '• ALL schedules\n'
                 '• ALL room data\n'

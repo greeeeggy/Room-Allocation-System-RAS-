@@ -171,7 +171,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Room Allocation System · Engineering Building',
+                            'Room Availability System · Engineering Building',
                             style: GoogleFonts.outfit(
                               fontSize: 13,
                               color: AppColors.textOnDark.withOpacity(0.6),

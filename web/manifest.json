@@ -1,11 +1,11 @@
 {
-    "name": "RAS - Room Allocation System",
+    "name": "RAS - Room Availability System",
     "short_name": "RAS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#2196F3",
-    "description": "Engineering Building Room Allocation System",
+    "description": "Engineering Building Room Availability System",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

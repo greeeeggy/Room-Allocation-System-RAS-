@@ -176,7 +176,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Room Allocation System · Engineering Building',
+                        'Room Availability System · Engineering Building',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.outfit(
                           fontSize: 13,

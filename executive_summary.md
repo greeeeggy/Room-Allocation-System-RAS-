@@ -1,7 +1,7 @@
-# Executive Summary: Room Allocation System (RAS)
+# Executive Summary: Room Availability System (RAS)
 
 ## Project Overview
-The Engineering Building, housing seven distinct departments across six floors, currently faces significant operational challenges due to manual and uncoordinated room management. The absence of a centralized, real-time system frequently results in double-bookings, wasted instructional time, and general confusion among students and faculty. The **Room Allocation System (RAS)** is proposed as a comprehensive digital solution to streamline room management and maximize the efficiency of academic resources.
+The Engineering Building, housing seven distinct departments across six floors, currently faces significant operational challenges due to manual and uncoordinated room management. The absence of a centralized, real-time system frequently results in double-bookings, wasted instructional time, and general confusion among students and faculty. The **Room Availability System (RAS)** is proposed as a comprehensive digital solution to streamline room management and maximize the efficiency of academic resources.
 
 ## The Proposal: A Decentralized "Source of Truth"
 RAS leverages the existing organizational structure of the Engineering Building by empowering **Class Mayors** as the primary source of truth. Unlike traditional systems that require central administration, RAS operates on a decentralized model:
@@ -20,4 +20,4 @@ Implementing RAS will transform the Engineering Building’s operational landsca
 *   **Low Maintenance, High Impact:** Built on a lean tech stack (Flutter & Firebase), the system requires no specialized hardware or complex backend maintenance, making it a sustainable solution for a student-led development team.
 
 ## Value Proposition
-The Room Allocation System is more than just a scheduling tool; it is a vital piece of infrastructure designed to improve the overall academic experience. By reducing stress, saving time, and fostering better coordination, RAS provides a scalable and practical solution to a growing problem, directly supporting the mission of the Engineering departments to provide an orderly and productive learning environment.
+The Room Availability System is more than just a scheduling tool; it is a vital piece of infrastructure designed to improve the overall academic experience. By reducing stress, saving time, and fostering better coordination, RAS provides a scalable and practical solution to a growing problem, directly supporting the mission of the Engineering departments to provide an orderly and productive learning environment.

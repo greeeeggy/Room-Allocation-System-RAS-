@@ -29,7 +29,7 @@ void main() async {
   });
   statusEngine.startPeriodicCheck();
   
-  runApp(const ProviderScope(child: RoomAllocationSystemApp()));
+  runApp(const ProviderScope(child: RoomAvailabilitySystemApp()));
 }
 
 void _checkForUpdates(WidgetRef ref) async {
@@ -54,8 +54,8 @@ void _checkForUpdates(WidgetRef ref) async {
   }
 }
 
-class RoomAllocationSystemApp extends ConsumerWidget {
-  const RoomAllocationSystemApp({super.key});
+class RoomAvailabilitySystemApp extends ConsumerWidget {
+  const RoomAvailabilitySystemApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,7 +77,7 @@ class RoomAllocationSystemApp extends ConsumerWidget {
     });
 
     return MaterialApp.router(
-      title: 'Room Allocation System',
+      title: 'Room Availability System',
       theme: AppTheme.light,
       routerConfig: router,
       debugShowCheckedModeBanner: false,

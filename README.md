@@ -1,6 +1,6 @@
-# Room Allocation System (RAS)
+# Room Availability System (RAS)
 
-A premium, architectural-grade room management and allocation system designed specifically for the Engineering Building. RAS provides a seamless, real-time environment for coordinating room occupancy, managing academic schedules, and facilitating communication between class mayors and the Engineering Council.
+A premium, architectural-grade room management and availability system designed specifically for the Engineering Building. RAS provides a seamless, real-time environment for coordinating room occupancy, managing academic schedules, and facilitating communication between class mayors and the Engineering Council.
 
 ---
 

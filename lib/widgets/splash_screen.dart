@@ -91,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen> {
             right: 0,
             child: Center(
               child: Text(
-                'ROOM ALLOCATION SYSTEM v1.0',
+                'ROOM AVAILABILITY SYSTEM v1.0',
                 style: TextStyle(
                   color: AppColors.textOnDark.withOpacity(0.2),
                   fontSize: 8,
